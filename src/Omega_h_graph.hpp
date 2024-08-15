@@ -29,9 +29,9 @@ struct Graph {
   LO nedges() const;
 };
 
-/** \brief combine the edges of two graphs that have the same set of vertices */
+/** \brief combine the edges of two graphs that have the same set of nodes */
 Graph add_edges(Graph g1, Graph g2);
-/** \brief return a graph with the contents of b2c in the order specified by a2b */
+/** \brief traverse two graphs a2b and b2c to form and return a graph from a2c */
 Graph unmap_graph(LOs a2b, Graph b2c);
 /**
  * \brief apply reduction operation op to the edge data associated with each source node
