@@ -15,7 +15,7 @@ using namespace Omega_h;
  * \return an expanded graph from key entities to elements
 */ 
 Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
-  OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
+  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
   return Graph();
 }
 
@@ -41,5 +41,5 @@ int main(int argc, char** argv) {
   Mesh mesh(&lib);
   binary::read(argv[1], lib.world(), &mesh);
   auto patches = formPatches(mesh, VERT, 3);
-  vtk::write_parallel(argv[2], &mesh, dim);
+  vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
