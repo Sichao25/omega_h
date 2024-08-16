@@ -6,6 +6,14 @@
 
 using namespace Omega_h;
 
+bool patchSufficient(Graph patches, Int minPatchSize) {
+  //find min degree for each patch
+  //if( minDegree < minPatchSize)
+  //  return false;
+  //else 
+    return true;
+}
+
 /**
  * \brief expand the patches
  * \param m (in) mesh of simplices
@@ -32,6 +40,14 @@ Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
 Graph formPatches(Mesh& m, LO keyDim, Int minPatchSize) {
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
+  auto patches = Graph();
+  for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
+    auto bridgePatches = expandPatches(m, patches, bridgeDim);
+    if( patchSufficient(bridgePatches, minPatchSize) ) {
+      return bridgePatches;
+    }
+  }
+  assert(false);
   return Graph();
 }
 
