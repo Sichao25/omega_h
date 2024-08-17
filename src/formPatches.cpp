@@ -25,17 +25,17 @@ Graph adj_segment_sort(Graph& g) {
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
   using TeamMem = typename TeamPol::member_type;
   auto offsets = g.a2ab;
-  auto elms = g.ab2b.view();
-  Kokkos::View<LO*, ExecSpace> elms_v("elms", elms.size());
-  Kokkos::deep_copy(elms_v, elms);
+  auto elms_r = g.ab2b.view(); //read only
+  Kokkos::View<LO*, ExecSpace> elms("elms", elms.size());
+  Kokkos::deep_copy(elms, elms_r);
   auto segment_sort = KOKKOS_LAMBDA(const TeamMem& t) {
     //Sort a row of A using the whole team.
     auto i = t.league_rank();
-    auto patch = Kokkos::subview(elms_v, Kokkos::make_pair(offsets[i], offsets[i+1]));
+    auto patch = Kokkos::subview(elms, Kokkos::make_pair(offsets[i], offsets[i+1]));
     Kokkos::Experimental::sort_team(t, patch);
   };
   Kokkos::parallel_for(TeamPol(offsets.size()-1, Kokkos::AUTO()), segment_sort);
-  return Graph(offsets,elms_w);//need a LOs instead of elms_w...
+  return Graph(offsets,Write<LO>(elms));
 }
 
 Graph remove_duplicate_edges(Graph g) {
