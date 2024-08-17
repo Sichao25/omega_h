@@ -1,7 +1,9 @@
 #include <Omega_h_file.hpp>
 #include <Omega_h_library.hpp>
 #include <Omega_h_mesh.hpp>
-#include <Kokkos_NestedSort.hpp>
+#include <Omega_h_for.hpp> //parallel_for
+#include <Omega_h_array_ops.hpp> //get_min
+#include <Kokkos_NestedSort.hpp> //sort_team
 
 #include <cstdlib>
 
@@ -13,10 +15,16 @@ using namespace Omega_h;
 }
 
 [[nodiscard]] bool patchSufficient(Graph patches, Int minPatchSize) {
-  //find min degree for each patch
-  //if( minDegree < minPatchSize)
-  //  return false;
-  //else 
+  const auto num_patches = patches.a2ab.size()-1;
+  auto offsets = patches.a2ab;
+  Write<LO> degree(num_patches);
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO i) {
+    degree[i] = offsets[i+1]-offsets[i];
+  });
+  auto minDegree = get_min(read(degree));
+  if( minDegree < minPatchSize)
+    return false;
+  else 
     return true;
 }
 
