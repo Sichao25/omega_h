@@ -3,13 +3,14 @@
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_for.hpp> //parallel_for
 #include <Omega_h_array_ops.hpp> //get_min
+#include <Omega_h_int_scan.hpp> //offset_scan
 #include <Kokkos_NestedSort.hpp> //sort_team
 
 #include <cstdlib>
 
 using namespace Omega_h;
 
-[[nodiscard]] Graph adj_segment_sort(Graph& g) {
+[[nodiscard]] Graph adj_segment_sort(Graph& g) { //not tested
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
   using TeamMem = typename TeamPol::member_type;
@@ -26,7 +27,7 @@ using namespace Omega_h;
   return Graph(offsets,Write<LO>(elms));
 }
 
-[[nodiscard]] Graph remove_duplicate_edges(Graph g) {
+[[nodiscard]] Graph remove_duplicate_edges(Graph g) { //not tested
   auto offsets = g.a2ab;
   auto values = g.ab2b;
   Write<I8> keep(values.size());
@@ -50,17 +51,32 @@ using namespace Omega_h;
   auto e2bValues = elm2Bridge.ab2b;
   //get bridge-to-elm
   auto bridge2Elm = m.ask_up(bridgeDim, elmDim);
-  //traverse elm-to-bridge and bridge-to-elm to form elm-to-elm
-  //are there map and graph functions to compute this?
-  //first count how many elms there are per elm
-  Write<LO> e2eDegree(m.nelems());
   auto b2eOffsets = bridge2Elm.a2ab;
-//  parallel_for(elm, OMEGA_H_LAMBDA(LO i) {
-//    //HERE loop over e2bOffsets
-//      //get bridge
-//      e2eDegree[i] = b2eOffsets[bridge+1]-b2eOffsets[bridge]; //counts duplicates!
-//  });
-  return Graph();
+  auto b2eValues = bridge2Elm.ab2b;
+  //traverse elm-to-bridge and bridge-to-elm to form elm-to-elm
+  //first count how many adj elms there are per elm
+  Write<LO> e2eDegree(m.nelems(),0);
+  parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
+    for(int j=e2bOffsets[i]; j<e2bOffsets[i+1]; j++) {
+      auto bridge = e2bValues[j];
+      e2eDegree[i] += b2eOffsets[bridge+1]-b2eOffsets[bridge];
+    }
+  });
+  auto e2eOffsets = offset_scan(read(e2eDegree));
+  Write<LO> e2eValues(e2eOffsets.last());
+  parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
+    auto pos = e2eOffsets[i];
+    for(int j=e2bOffsets[i]; j<e2bOffsets[i+1]; j++) {
+      auto bridge = e2bValues[j];
+      for(int k=b2eOffsets[bridge]; k<b2eOffsets[bridge+1]; k++) {
+        assert(pos < e2eOffsets[i+1]);
+        e2eValues[pos++] = b2eValues[k];
+      }
+    }
+  });
+  auto e2e_unsorted = Graph(e2eOffsets, read(e2eValues));
+  auto e2e_dups = adj_segment_sort(e2e_unsorted);
+  return remove_duplicate_edges(e2e_dups);
 }
 
 [[nodiscard]] bool patchSufficient(Graph patches, Int minPatchSize) {
@@ -73,7 +89,7 @@ using namespace Omega_h;
   auto minDegree = get_min(read(degree));
   if( minDegree < minPatchSize)
     return false;
-  else 
+  else
     return true;
 }
 
@@ -85,7 +101,7 @@ using namespace Omega_h;
  * \param bridgeDim (in) the entity dimension used for expansion via second
  *        order element-to-element adjacencies
  * \return an expanded graph from key entities to elements
-*/ 
+*/
 [[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
   auto patch_elms = patches.ab2b;
