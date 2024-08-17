@@ -9,9 +9,42 @@
 
 using namespace Omega_h;
 
+[[nodiscard]] Graph adj_segment_sort(Graph& g) {
+  using ExecSpace = Kokkos::DefaultExecutionSpace;
+  using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
+  using TeamMem = typename TeamPol::member_type;
+  auto offsets = g.a2ab;
+  auto elms_r = g.ab2b.view(); //read only
+  Kokkos::View<LO*, ExecSpace> elms("elms", elms.size());
+  Kokkos::deep_copy(elms, elms_r);
+  auto segment_sort = KOKKOS_LAMBDA(const TeamMem& t) {
+    auto i = t.league_rank();
+    auto patch = Kokkos::subview(elms, Kokkos::make_pair(offsets[i], offsets[i+1]));
+    Kokkos::Experimental::sort_team(t, patch);
+  };
+  Kokkos::parallel_for(TeamPol(offsets.size()-1, Kokkos::AUTO()), segment_sort);
+  return Graph(offsets,Write<LO>(elms));
+}
+
+[[nodiscard]] Graph remove_duplicate_edges(Graph g) {
+  auto offsets = g.a2ab;
+  auto values = g.ab2b;
+  Write<I8> keep(values.size());
+  auto markDups = OMEGA_H_LAMBDA(LO i) {
+    keep[offsets[i]] = 1;
+    for(int j=offsets[i]+1; j<offsets[i+1]; j++) {
+      keep[j] = (values[j-1] != values[j]);
+    }
+  };
+  auto filtered = filter_graph_edges(g,keep);
+  return filtered;
+}
+
 [[nodiscard]] Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
   const auto elmDim = m.dim();
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < elmDim);
+  if(bridgeDim == elmDim-1)
+    return m.ask_dual();
   auto elm2Bridge = m.ask_down(elmDim, bridgeDim);
   auto e2bOffsets = elm2Bridge.a2ab;
   auto e2bValues = elm2Bridge.ab2b;
@@ -22,12 +55,11 @@ using namespace Omega_h;
   //first count how many elms there are per elm
   Write<LO> e2eDegree(m.nelems());
   auto b2eOffsets = bridge2Elm.a2ab;
-  parallel_for(elm, OMEGA_H_LAMBDA(LO i) {
-    //HERE loop over e2bOffsets
-      //get bridge
-      e2eDegree[i] = b2eOffsets[bridge+1]-b2eOffsets[bridge]; //counts duplicates!
-  });
-
+//  parallel_for(elm, OMEGA_H_LAMBDA(LO i) {
+//    //HERE loop over e2bOffsets
+//      //get bridge
+//      e2eDegree[i] = b2eOffsets[bridge+1]-b2eOffsets[bridge]; //counts duplicates!
+//  });
   return Graph();
 }
 
@@ -45,27 +77,6 @@ using namespace Omega_h;
     return true;
 }
 
-[[nodiscard]] Graph adj_segment_sort(Graph& g) {
-  using ExecSpace = Kokkos::DefaultExecutionSpace;
-  using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
-  using TeamMem = typename TeamPol::member_type;
-  auto offsets = g.a2ab;
-  auto elms_r = g.ab2b.view(); //read only
-  Kokkos::View<LO*, ExecSpace> elms("elms", elms.size());
-  Kokkos::deep_copy(elms, elms_r);
-  auto segment_sort = KOKKOS_LAMBDA(const TeamMem& t) {
-    //Sort a row of A using the whole team.
-    auto i = t.league_rank();
-    auto patch = Kokkos::subview(elms, Kokkos::make_pair(offsets[i], offsets[i+1]));
-    Kokkos::Experimental::sort_team(t, patch);
-  };
-  Kokkos::parallel_for(TeamPol(offsets.size()-1, Kokkos::AUTO()), segment_sort);
-  return Graph(offsets,Write<LO>(elms));
-}
-
-[[nodiscard]] Graph remove_duplicate_edges(Graph g) {
-  return Graph();
-}
 
 /**
  * \brief expand the patches
@@ -98,7 +109,7 @@ using namespace Omega_h;
 [[nodiscard]] Graph formPatches(Mesh& m, LO keyDim, Int minPatchSize) {
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
-  auto patches = Graph();
+  auto patches = m.ask_up(VERT,m.dim());
   for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
     auto bridgePatches = expandPatches(m, patches, bridgeDim);
     if( patchSufficient(bridgePatches, minPatchSize) ) {
