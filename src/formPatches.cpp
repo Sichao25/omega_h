@@ -4,6 +4,7 @@
 #include <Omega_h_for.hpp> //parallel_for
 #include <Omega_h_array_ops.hpp> //get_min
 #include <Omega_h_int_scan.hpp> //offset_scan
+#include <Omega_h_simplex.hpp> //simplex_degree
 #include <Kokkos_NestedSort.hpp> //sort_team
 
 #include <cstdlib>
@@ -16,7 +17,7 @@ using namespace Omega_h;
   using TeamMem = typename TeamPol::member_type;
   auto offsets = g.a2ab;
   auto elms_r = g.ab2b.view(); //read only
-  Kokkos::View<LO*, ExecSpace> elms("elms", elms.size());
+  Kokkos::View<LO*, ExecSpace> elms("elms", elms_r.size());
   Kokkos::deep_copy(elms, elms_r);
   auto segment_sort = KOKKOS_LAMBDA(const TeamMem& t) {
     auto i = t.league_rank();
@@ -47,7 +48,7 @@ using namespace Omega_h;
   if(bridgeDim == elmDim-1)
     return m.ask_dual();
   auto elm2Bridge = m.ask_down(elmDim, bridgeDim);
-  auto e2bOffsets = elm2Bridge.a2ab;
+  auto e2bDegree = simplex_degree(elmDim, bridgeDim);
   auto e2bValues = elm2Bridge.ab2b;
   //get bridge-to-elm
   auto bridge2Elm = m.ask_up(bridgeDim, elmDim);
@@ -57,7 +58,7 @@ using namespace Omega_h;
   //first count how many adj elms there are per elm
   Write<LO> e2eDegree(m.nelems(),0);
   parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
-    for(int j=e2bOffsets[i]; j<e2bOffsets[i+1]; j++) {
+    for(int j=i*e2bDegree; j<(i+1)*e2bDegree; j++) {
       auto bridge = e2bValues[j];
       e2eDegree[i] += b2eOffsets[bridge+1]-b2eOffsets[bridge];
     }
@@ -66,7 +67,7 @@ using namespace Omega_h;
   Write<LO> e2eValues(e2eOffsets.last());
   parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
     auto pos = e2eOffsets[i];
-    for(int j=e2bOffsets[i]; j<e2bOffsets[i+1]; j++) {
+    for(int j=i*e2bDegree; j<(i+1)*e2bDegree; j++) {
       auto bridge = e2bValues[j];
       for(int k=b2eOffsets[bridge]; k<b2eOffsets[bridge+1]; k++) {
         assert(pos < e2eOffsets[i+1]);
@@ -132,7 +133,7 @@ using namespace Omega_h;
       return bridgePatches;
     }
   }
-  assert(false);
+  assert(false); //fails here
   return Graph();
 }
 
