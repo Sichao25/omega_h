@@ -10,7 +10,24 @@
 using namespace Omega_h;
 
 [[nodiscard]] Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
-  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
+  const auto elmDim = m.dim();
+  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < elmDim);
+  auto elm2Bridge = m.ask_down(elmDim, bridgeDim);
+  auto e2bOffsets = elm2Bridge.a2ab;
+  auto e2bValues = elm2Bridge.ab2b;
+  //get bridge-to-elm
+  auto bridge2Elm = m.ask_up(bridgeDim, elmDim);
+  //traverse elm-to-bridge and bridge-to-elm to form elm-to-elm
+  //are there map and graph functions to compute this?
+  //first count how many elms there are per elm
+  Write<LO> e2eDegree(m.nelems());
+  auto b2eOffsets = bridge2Elm.a2ab;
+  parallel_for(elm, OMEGA_H_LAMBDA(LO i) {
+    //HERE loop over e2bOffsets
+      //get bridge
+      e2eDegree[i] = b2eOffsets[bridge+1]-b2eOffsets[bridge]; //counts duplicates!
+  });
+
   return Graph();
 }
 
