@@ -1,10 +1,16 @@
 #include <Omega_h_file.hpp>
 #include <Omega_h_library.hpp>
 #include <Omega_h_mesh.hpp>
+#include <Kokkos_NestedSort.hpp>
 
 #include <cstdlib>
 
 using namespace Omega_h;
+
+Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
+  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
+  return Graph();
+}
 
 bool patchSufficient(Graph patches, Int minPatchSize) {
   //find min degree for each patch
@@ -12,6 +18,28 @@ bool patchSufficient(Graph patches, Int minPatchSize) {
   //  return false;
   //else 
     return true;
+}
+
+Graph adj_segment_sort(Graph& g) {
+  using ExecSpace = Kokkos::DefaultExecutionSpace;
+  using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
+  using TeamMem = typename TeamPol::member_type;
+  auto offsets = g.a2ab;
+  auto elms = g.ab2b.view();
+  Kokkos::View<LO*, ExecSpace> elms_v("elms", elms.size());
+  Kokkos::deep_copy(elms_v, elms);
+  auto segment_sort = KOKKOS_LAMBDA(const TeamMem& t) {
+    //Sort a row of A using the whole team.
+    auto i = t.league_rank();
+    auto patch = Kokkos::subview(elms_v, Kokkos::make_pair(offsets[i], offsets[i+1]));
+    Kokkos::Experimental::sort_team(t, patch);
+  };
+  Kokkos::parallel_for(TeamPol(offsets.size()-1, Kokkos::AUTO()), segment_sort);
+  return Graph(offsets,elms_w);//need a LOs instead of elms_w...
+}
+
+Graph remove_duplicate_edges(Graph g) {
+  return Graph();
 }
 
 /**
@@ -24,7 +52,12 @@ bool patchSufficient(Graph patches, Int minPatchSize) {
 */ 
 Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
-  return Graph();
+  auto patch_elms = patches.ab2b;
+  auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
+  auto expanded = unmap_graph(patch_elms, adjElms);
+  adj_segment_sort(expanded);
+  auto dedup = remove_duplicate_edges(expanded);
+  return dedup;
 }
 
 /**
