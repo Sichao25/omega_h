@@ -7,12 +7,12 @@
 
 using namespace Omega_h;
 
-Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
+[[nodiscard]] Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
   return Graph();
 }
 
-bool patchSufficient(Graph patches, Int minPatchSize) {
+[[nodiscard]] bool patchSufficient(Graph patches, Int minPatchSize) {
   //find min degree for each patch
   //if( minDegree < minPatchSize)
   //  return false;
@@ -20,7 +20,7 @@ bool patchSufficient(Graph patches, Int minPatchSize) {
     return true;
 }
 
-Graph adj_segment_sort(Graph& g) {
+[[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
   using TeamMem = typename TeamPol::member_type;
@@ -38,7 +38,7 @@ Graph adj_segment_sort(Graph& g) {
   return Graph(offsets,Write<LO>(elms));
 }
 
-Graph remove_duplicate_edges(Graph g) {
+[[nodiscard]] Graph remove_duplicate_edges(Graph g) {
   return Graph();
 }
 
@@ -50,13 +50,13 @@ Graph remove_duplicate_edges(Graph g) {
  *        order element-to-element adjacencies
  * \return an expanded graph from key entities to elements
 */ 
-Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
+[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
   auto patch_elms = patches.ab2b;
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
   auto expanded = unmap_graph(patch_elms, adjElms);
-  adj_segment_sort(expanded);
-  auto dedup = remove_duplicate_edges(expanded);
+  auto sorted = adj_segment_sort(expanded);
+  auto dedup = remove_duplicate_edges(sorted);
   return dedup;
 }
 
@@ -70,7 +70,7 @@ Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
  * \return a graph whose source nodes are the entities of keyDim dimension, and
  *         edges are connecting to elements in the patch
  */
-Graph formPatches(Mesh& m, LO keyDim, Int minPatchSize) {
+[[nodiscard]] Graph formPatches(Mesh& m, LO keyDim, Int minPatchSize) {
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = Graph();
