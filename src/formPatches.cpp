@@ -108,8 +108,23 @@ using namespace Omega_h;
   auto patch_elms = patches.ab2b;
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
   auto expanded = unmap_graph(patch_elms, adjElms);
-  auto sorted = adj_segment_sort(expanded);
-  auto dedup = remove_duplicate_edges(sorted);
+  //patchDegree = 0
+  //for each patch (i.e., formed by a vertex)
+  //  loop over patches.offsets
+  //    patchElm = patches.values[j]
+  //    patchDegree += expanded.offsets[j+1]-expanded.offsets[j]
+  //offsets = offset_scan(patchDegree)
+  //Write<LO> mergedPatches(offsets.last())
+  //for each patch (i.e., formed by a vertex)
+  //  idx = 0
+  //  loop over patches.offsets
+  //    patchElm = patches.values[j]
+  //    loop over expanded.offsets[patchElm]
+  //      mergedPatches[idx] = expanded.values[k]
+  //      idx++;
+  // Graph merged(offsets,mergedPatches)
+  // auto sorted = adj_segment_sort(merged);
+  // auto dedup = remove_duplicate_edges(sorted);
   return dedup;
 }
 
@@ -128,7 +143,7 @@ using namespace Omega_h;
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = m.ask_up(VERT,m.dim());
   for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
-    auto bridgePatches = expandPatches(m, patches, bridgeDim);
+    auto bridgePatches = expandPatches(m, patches, bridgeDim); //FIXME a2ab.size is 25... something wrong here, should be 10
     if( patchSufficient(bridgePatches, minPatchSize) ) {
       return bridgePatches;
     }
