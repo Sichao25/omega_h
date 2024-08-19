@@ -173,9 +173,9 @@ void testGraphSort() {
     OMEGA_H_CHECK(res == expected);
   }
   {
-    Graph g({0,4,6},{4,3,2,2,101,100});
+    Graph g({0,4,6},{4,3,2,2,1,0});
     auto res = adj_segment_sort(g);
-    Graph expected({0,4,6},{2,2,3,4,100,101});
+    Graph expected({0,4,6},{2,2,3,4,0,1});
     OMEGA_H_CHECK(res == expected);
   }
 }
