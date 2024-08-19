@@ -176,6 +176,7 @@ int main(int argc, char** argv) {
      Graph expected({0,1,4},{1,2,3,7});
      OMEGA_H_CHECK(res == expected);
   }
+  {
      Graph g({0,6},{1,1,1,1,1,1});
      auto res = remove_duplicate_edges(g);
      Graph expected({0,1},{1});
