@@ -11,6 +11,30 @@
 
 using namespace Omega_h;
 
+void render(Mesh& m, Graph patches, std::string suffix) {
+  const auto num_patches = patches.nnodes();
+  auto offsets = patches.a2ab;
+  Write<LO> degree(num_patches);
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO i) {
+    degree[i] = offsets[i+1]-offsets[i];
+  });
+  m.add_tag(VERT, "patchDegree", 1, read(degree));
+  std::string name = "patch_" + suffix + ".vtk";
+  vtk::write_parallel(name, &m, m.dim());
+}
+
+void writeGraph(Graph g) {
+  HostRead offsets(g.a2ab);
+  HostRead values(g.ab2b);
+  for(int node = 0; node < g.nnodes(); node++) {
+    std::cout << node << ": ";
+     for(int edge = offsets[node]; edge < offsets[node+1]; edge++) {
+       std::cout << values[edge] << " ";
+     }
+     std::cout << "\n";
+  }
+}
+
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
@@ -133,6 +157,7 @@ using namespace Omega_h;
     }
   });
   Graph patchExpDup(patchExpDup_offsets,patchExpDup_elms);
+  writeGraph(patchExpDup);
   auto sorted = adj_segment_sort(patchExpDup);
   auto dedup = remove_duplicate_edges(sorted);
   return dedup;
@@ -152,11 +177,15 @@ using namespace Omega_h;
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = m.ask_up(VERT,m.dim());
+  writeGraph(patches);
+  render(m,patches,"init");
+  //TODO modify patchSufficient to return a mask of patches that need to be expanded
   if( patchSufficient(patches, minPatchSize) ) {
     return patches;
   }
   for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
     auto bridgePatches = expandPatches(m, patches, bridgeDim);
+    render(m,bridgePatches,std::to_string(bridgeDim));
     if( patchSufficient(bridgePatches, minPatchSize) ) {
       return bridgePatches;
     }
