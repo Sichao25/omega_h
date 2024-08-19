@@ -24,20 +24,21 @@ using namespace Omega_h;
     auto patch = Kokkos::subview(elms, Kokkos::make_pair(offsets[i], offsets[i+1]));
     Kokkos::Experimental::sort_team(t, patch);
   };
-  Kokkos::parallel_for(TeamPol(offsets.size()-1, Kokkos::AUTO()), segment_sort);
+  Kokkos::parallel_for(TeamPol(g.nnodes(), Kokkos::AUTO()), segment_sort);
   return Graph(offsets,Write<LO>(elms));
 }
 
 [[nodiscard]] Graph remove_duplicate_edges(Graph g) { //not tested
   auto offsets = g.a2ab;
   auto values = g.ab2b;
-  Write<I8> keep(values.size());
+  Write<I8> keep(g.nedges());
   auto markDups = OMEGA_H_LAMBDA(LO i) {
     keep[offsets[i]] = 1;
     for(int j=offsets[i]+1; j<offsets[i+1]; j++) {
       keep[j] = (values[j-1] != values[j]);
     }
   };
+  parallel_for(g.nnodes(), markDups);
   auto filtered = filter_graph_edges(g,keep);
   return filtered;
 }
@@ -81,7 +82,7 @@ using namespace Omega_h;
 }
 
 [[nodiscard]] bool patchSufficient(Graph patches, Int minPatchSize) {
-  const auto num_patches = patches.a2ab.size()-1;
+  const auto num_patches = patches.nnodes();
   auto offsets = patches.a2ab;
   Write<LO> degree(num_patches);
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO i) {
@@ -103,28 +104,37 @@ using namespace Omega_h;
  *        order element-to-element adjacencies
  * \return an expanded graph from key entities to elements
 */
+//FIXME ideally, this used the Omega_h_map and Omega_h_graph functions
 [[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
-  auto patch_elms = patches.ab2b;
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
-  auto expanded = unmap_graph(patch_elms, adjElms);
-  //patchDegree = 0
-  //for each patch (i.e., formed by a vertex)
-  //  loop over patches.offsets
-  //    patchElm = patches.values[j]
-  //    patchDegree += expanded.offsets[j+1]-expanded.offsets[j]
-  //offsets = offset_scan(patchDegree)
-  //Write<LO> mergedPatches(offsets.last())
-  //for each patch (i.e., formed by a vertex)
-  //  idx = 0
-  //  loop over patches.offsets
-  //    patchElm = patches.values[j]
-  //    loop over expanded.offsets[patchElm]
-  //      mergedPatches[idx] = expanded.values[k]
-  //      idx++;
-  // Graph merged(offsets,mergedPatches)
-  // auto sorted = adj_segment_sort(merged);
-  // auto dedup = remove_duplicate_edges(sorted);
+  auto adjElms_offsets = adjElms.a2ab;
+  auto adjElms_elms = adjElms.ab2b;
+  const auto num_patches = patches.nnodes();
+  auto patch_offsets = patches.a2ab;
+  auto patch_elms = patches.ab2b;
+  Write<LO> degree(num_patches);
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
+    degree[patch] = 0;
+    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
+      auto elm = patch_elms[j];
+      degree[patch] += adjElms_offsets[elm+1]-adjElms_offsets[elm]; //counts duplicates
+    }
+  });
+  auto patchExpDup_offsets = offset_scan(read(degree));
+  Write<LO> patchExpDup_elms(patchExpDup_offsets.last());
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
+    auto idx = 0;
+    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
+      auto elm = patch_elms[j];
+      for(int k=adjElms_offsets[elm]; k<adjElms_offsets[elm+1]; k++) {
+        patchExpDup_elms[idx++] = adjElms_elms[k];
+      }
+    }
+  });
+  Graph patchExpDup(patchExpDup_offsets,patchExpDup_elms);
+  auto sorted = adj_segment_sort(patchExpDup);
+  auto dedup = remove_duplicate_edges(sorted);
   return dedup;
 }
 
@@ -142,8 +152,11 @@ using namespace Omega_h;
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = m.ask_up(VERT,m.dim());
+  if( patchSufficient(patches, minPatchSize) ) {
+    return patches;
+  }
   for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
-    auto bridgePatches = expandPatches(m, patches, bridgeDim); //FIXME a2ab.size is 25... something wrong here, should be 10
+    auto bridgePatches = expandPatches(m, patches, bridgeDim);
     if( patchSufficient(bridgePatches, minPatchSize) ) {
       return bridgePatches;
     }
@@ -157,6 +170,17 @@ int main(int argc, char** argv) {
   OMEGA_H_CHECK(argc == 3);
   Mesh mesh(&lib);
   binary::read(argv[1], lib.world(), &mesh);
+  {
+     Graph g({0,2,6},{1,1,2,3,7,7});
+     auto res = remove_duplicate_edges(g);
+     Graph expected({0,1,4},{1,2,3,7});
+     OMEGA_H_CHECK(res == expected);
+  }
+     Graph g({0,6},{1,1,1,1,1,1});
+     auto res = remove_duplicate_edges(g);
+     Graph expected({0,1},{1});
+     OMEGA_H_CHECK(res == expected);
+  }
   auto patches = formPatches(mesh, VERT, 3);
   vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
