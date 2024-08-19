@@ -11,7 +11,7 @@
 
 using namespace Omega_h;
 
-[[nodiscard]] Graph adj_segment_sort(Graph& g) { //not tested
+[[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
   using TeamMem = typename TeamPol::member_type;
@@ -28,7 +28,7 @@ using namespace Omega_h;
   return Graph(offsets,Write<LO>(elms));
 }
 
-[[nodiscard]] Graph remove_duplicate_edges(Graph g) { //not tested
+[[nodiscard]] Graph remove_duplicate_edges(Graph g) {
   auto offsets = g.a2ab;
   auto values = g.ab2b;
   Write<I8> keep(g.nedges());
@@ -165,11 +165,22 @@ using namespace Omega_h;
   return Graph();
 }
 
-int main(int argc, char** argv) {
-  auto lib = Library(&argc, &argv);
-  OMEGA_H_CHECK(argc == 3);
-  Mesh mesh(&lib);
-  binary::read(argv[1], lib.world(), &mesh);
+void testGraphSort() {
+  {
+    Graph g({0,6},{1,3,2,4,4,3});
+    auto res = adj_segment_sort(g);
+    Graph expected({0,6},{1,2,3,3,4,4});
+    OMEGA_H_CHECK(res == expected);
+  }
+  {
+    Graph g({0,4,6},{4,3,2,2,101,100});
+    auto res = adj_segment_sort(g);
+    Graph expected({0,4,6},{2,2,3,4,100,101});
+    OMEGA_H_CHECK(res == expected);
+  }
+}
+
+void testGraphDuplicateRemoval() {
   {
      Graph g({0,2,6},{1,1,2,3,7,7});
      auto res = remove_duplicate_edges(g);
@@ -182,6 +193,15 @@ int main(int argc, char** argv) {
      Graph expected({0,1},{1});
      OMEGA_H_CHECK(res == expected);
   }
+}
+
+int main(int argc, char** argv) {
+  auto lib = Library(&argc, &argv);
+  testGraphSort();
+  testGraphDuplicateRemoval();
+  OMEGA_H_CHECK(argc == 3);
+  Mesh mesh(&lib);
+  binary::read(argv[1], lib.world(), &mesh);
   auto patches = formPatches(mesh, VERT, 3);
   vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
