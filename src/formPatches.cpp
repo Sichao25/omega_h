@@ -23,9 +23,10 @@ void render(Mesh& m, Graph patches, std::string suffix) {
   vtk::write_parallel(name, &m, m.dim());
 }
 
-void writeGraph(Graph g) {
+void writeGraph(Graph g, std::string name="") {
   HostRead offsets(g.a2ab);
   HostRead values(g.ab2b);
+  std::cout << "== " << name << " ==\n";
   for(int node = 0; node < g.nnodes(); node++) {
     std::cout << node << ": ";
      for(int edge = offsets[node]; edge < offsets[node+1]; edge++) {
@@ -115,19 +116,24 @@ void writeGraph(Graph g) {
   return read(done);
 }
 
+template <typename T>
+void writeArray(T arr, std::string prefix) {
+  std::cout << prefix << "\n";
+  for(int i=0; i< arr.size(); i++) {
+    std::cout << i << ": " << arr[i] << "\n";
+  }
+}
 
 /**
  * \brief expand the patches
  * \param m (in) mesh of simplices
  * \param patches (in) graph of key entities to elements
- * \param bridgeDim (in) the entity dimension used for expansion via second
- *        order element-to-element adjacencies
+ * \param adjElms (in) second order element-to-element adjacencies
+ *                     used for expansion
  * \return an expanded graph from key entities to elements
 */
 //FIXME ideally, this used the Omega_h_map and Omega_h_graph functions
-[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim, Read<I8> patchDone) {
-  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
-  auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
+[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Graph adjElms, Read<I8> patchDone) {
   auto adjElms_offsets = adjElms.a2ab;
   auto adjElms_elms = adjElms.ab2b;
   const auto num_patches = patches.nnodes();
@@ -136,8 +142,6 @@ void writeGraph(Graph g) {
   Write<LO> degree(num_patches);
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
     degree[patch] = patch_offsets[patch+1] - patch_offsets[patch];
-  });
-  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
     if(!patchDone[patch]) {
       for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
         auto elm = patch_elms[j];
@@ -149,13 +153,9 @@ void writeGraph(Graph g) {
   Write<LO> patchExpDup_elms(patchExpDup_offsets.last());
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
     auto idx = patchExpDup_offsets[patch];
-    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++)
+    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
       patchExpDup_elms[idx++] = patch_elms[j];
-  });
-  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
-    if(!patchDone[patch]) {
-      auto idx = patchExpDup_offsets[patch];
-      for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
+      if(!patchDone[patch]) {
         auto elm = patch_elms[j];
         for(int k=adjElms_offsets[elm]; k<adjElms_offsets[elm+1]; k++) {
           patchExpDup_elms[idx++] = adjElms_elms[k];
@@ -166,7 +166,7 @@ void writeGraph(Graph g) {
   Graph patchExpDup(patchExpDup_offsets,patchExpDup_elms);
   auto sorted = adj_segment_sort(patchExpDup);
   auto dedup = remove_duplicate_edges(sorted);
-  writeGraph(dedup);
+  writeGraph(dedup, "dedup");
   return dedup;
 }
 
@@ -189,11 +189,14 @@ void writeGraph(Graph g) {
   auto patchDone = patchSufficient(patches, minPatchSize);
   if( get_min(patchDone) == 1 )
     return patches;
-  for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
-    std::cout << "expanding via bridge " << bridgeDim << "\n";
-    auto bridgePatches = expandPatches(m, patches, bridgeDim, patchDone);
-    render(m,bridgePatches,std::to_string(bridgeDim));
-    patchDone = patchSufficient(bridgePatches, minPatchSize);
+  const auto bridgeDim = m.dim()-1;
+  auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
+  writeGraph(adjElms, "adjElms");
+  for(Int iter = 0; iter < 10; iter++) {
+    std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
+    patches = expandPatches(m, patches, adjElms, patchDone);
+    render(m,patches,std::to_string(bridgeDim));
+    patchDone = patchSufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 )
       return patches;
   }
