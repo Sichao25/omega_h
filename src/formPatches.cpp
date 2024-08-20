@@ -105,18 +105,14 @@ void writeGraph(Graph g) {
   return remove_duplicate_edges(e2e_dups);
 }
 
-[[nodiscard]] bool patchSufficient(Graph patches, Int minPatchSize) {
+[[nodiscard]] Read<I8> patchSufficient(Graph patches, Int minPatchSize) {
   const auto num_patches = patches.nnodes();
   auto offsets = patches.a2ab;
-  Write<LO> degree(num_patches);
+  Write<I8> done(num_patches);
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO i) {
-    degree[i] = offsets[i+1]-offsets[i];
+    done[i] = ((offsets[i+1]-offsets[i]) >= minPatchSize);
   });
-  auto minDegree = get_min(read(degree));
-  if( minDegree < minPatchSize)
-    return false;
-  else
-    return true;
+  return read(done);
 }
 
 
@@ -129,7 +125,7 @@ void writeGraph(Graph g) {
  * \return an expanded graph from key entities to elements
 */
 //FIXME ideally, this used the Omega_h_map and Omega_h_graph functions
-[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim) {
+[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Int bridgeDim, Read<I8> patchDone) {
   OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < m.dim());
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
   auto adjElms_offsets = adjElms.a2ab;
@@ -139,27 +135,38 @@ void writeGraph(Graph g) {
   auto patch_elms = patches.ab2b;
   Write<LO> degree(num_patches);
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
-    degree[patch] = 0;
-    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
-      auto elm = patch_elms[j];
-      degree[patch] += adjElms_offsets[elm+1]-adjElms_offsets[elm]; //counts duplicates
+    degree[patch] = patch_offsets[patch+1] - patch_offsets[patch];
+  });
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
+    if(!patchDone[patch]) {
+      for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
+        auto elm = patch_elms[j];
+        degree[patch] += adjElms_offsets[elm+1]-adjElms_offsets[elm]; //counts duplicates
+      }
     }
   });
   auto patchExpDup_offsets = offset_scan(read(degree));
   Write<LO> patchExpDup_elms(patchExpDup_offsets.last());
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
     auto idx = patchExpDup_offsets[patch];
-    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
-      auto elm = patch_elms[j];
-      for(int k=adjElms_offsets[elm]; k<adjElms_offsets[elm+1]; k++) {
-        patchExpDup_elms[idx++] = adjElms_elms[k];
+    for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++)
+      patchExpDup_elms[idx++] = patch_elms[j];
+  });
+  parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
+    if(!patchDone[patch]) {
+      auto idx = patchExpDup_offsets[patch];
+      for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
+        auto elm = patch_elms[j];
+        for(int k=adjElms_offsets[elm]; k<adjElms_offsets[elm+1]; k++) {
+          patchExpDup_elms[idx++] = adjElms_elms[k];
+        }
       }
     }
   });
   Graph patchExpDup(patchExpDup_offsets,patchExpDup_elms);
-  writeGraph(patchExpDup);
   auto sorted = adj_segment_sort(patchExpDup);
   auto dedup = remove_duplicate_edges(sorted);
+  writeGraph(dedup);
   return dedup;
 }
 
@@ -179,16 +186,16 @@ void writeGraph(Graph g) {
   auto patches = m.ask_up(VERT,m.dim());
   writeGraph(patches);
   render(m,patches,"init");
-  //TODO modify patchSufficient to return a mask of patches that need to be expanded
-  if( patchSufficient(patches, minPatchSize) ) {
+  auto patchDone = patchSufficient(patches, minPatchSize);
+  if( get_min(patchDone) == 1 )
     return patches;
-  }
   for(Int bridgeDim = m.dim()-1; bridgeDim >= 0; bridgeDim--) {
-    auto bridgePatches = expandPatches(m, patches, bridgeDim);
+    std::cout << "expanding via bridge " << bridgeDim << "\n";
+    auto bridgePatches = expandPatches(m, patches, bridgeDim, patchDone);
     render(m,bridgePatches,std::to_string(bridgeDim));
-    if( patchSufficient(bridgePatches, minPatchSize) ) {
-      return bridgePatches;
-    }
+    patchDone = patchSufficient(bridgePatches, minPatchSize);
+    if( get_min(patchDone) == 1 )
+      return patches;
   }
   assert(false); //fails here
   return Graph();
