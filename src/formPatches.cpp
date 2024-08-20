@@ -148,7 +148,7 @@ void writeGraph(Graph g) {
   auto patchExpDup_offsets = offset_scan(read(degree));
   Write<LO> patchExpDup_elms(patchExpDup_offsets.last());
   parallel_for(num_patches, OMEGA_H_LAMBDA(LO patch) {
-    auto idx = 0;
+    auto idx = patchExpDup_offsets[patch];
     for(int j=patch_offsets[patch]; j<patch_offsets[patch+1]; j++) {
       auto elm = patch_elms[j];
       for(int k=adjElms_offsets[elm]; k<adjElms_offsets[elm+1]; k++) {
