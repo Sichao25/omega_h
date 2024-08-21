@@ -71,6 +71,7 @@ set(Omega_h_SOURCES
   Omega_h_owners.cpp
   Omega_h_parser.cpp
   Omega_h_parser_graph.cpp
+  Omega_h_patches.cpp
   Omega_h_pool.cpp
   Omega_h_print.cpp
   Omega_h_profile.cpp
@@ -391,7 +392,7 @@ if(BUILD_TESTING)
   osh_add_exe(arrayops_test)
   osh_add_exe(sort_test)
   osh_add_exe(unit_math)
-  osh_add_exe(formPatches)
+  osh_add_exe(test_patches)
   if (Omega_h_USE_Kokkos)
     osh_add_exe(bbox_reduce_test)
     osh_add_exe(initKokkosAndLib)
