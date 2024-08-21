@@ -6,12 +6,13 @@
 #include <Omega_h_int_scan.hpp> //offset_scan
 #include <Omega_h_simplex.hpp> //simplex_degree
 #include <Kokkos_NestedSort.hpp> //sort_team
+#include <Omega_h_build.hpp> //build_box
 
 #include <cstdlib>
 
 using namespace Omega_h;
 
-bool verbose = false;
+int verbose = 0;
 
 void render(Mesh& m, Graph patches, std::string suffix) {
   const auto num_patches = patches.nnodes();
@@ -26,7 +27,7 @@ void render(Mesh& m, Graph patches, std::string suffix) {
 }
 
 void writeGraph(Graph g, std::string name="") {
-  if(verbose!=2) return;
+  if(verbose<2) return;
   HostRead offsets(g.a2ab);
   HostRead values(g.ab2b);
   std::cout << "== " << name << " ==\n";
@@ -37,6 +38,19 @@ void writeGraph(Graph g, std::string name="") {
      }
      std::cout << "\n";
   }
+  if(verbose<3) return;
+  std::cout << "offsets = {";
+  for(int i = 0; i < offsets.size(); i++) {
+    std::cout << offsets[i];
+    if(i!=offsets.size()-1) std::cout << ",";
+  }
+  std::cout << "};\n";
+  std::cout << "values = {";
+  for(int i = 0; i < values.size(); i++) {
+    std::cout << values[i];
+    if(i!=values.size()-1) std::cout << ",";
+  }
+  std::cout << "};\n";
 }
 
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
@@ -188,12 +202,12 @@ void writeGraph(Graph g, std::string name="") {
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
   writeGraph(adjElms, "adjElms");
   for(Int iter = 0; iter < 10; iter++) {
-    if(verbose==2) std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
+    if(verbose>=2) std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
     render(m,patches,std::to_string(bridgeDim));
     patchDone = patchSufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 ) {
-      if(verbose) std::cout << "iterations: " << iter << "\n";
+      if(verbose>=1) std::cout << "iterations: " << iter << "\n";
       return patches;
     }
   }
@@ -231,14 +245,63 @@ void testGraphDuplicateRemoval() {
   }
 }
 
+void test2x2(Omega_h::Library& lib) {
+  auto world = lib.world();
+  const auto x = 2.0;
+  const auto y = 2.0;
+  const auto z = 0.0;
+  const auto nx = 2;
+  const auto ny = 2;
+  const auto nz = 0;
+  const auto symmetric = false;
+  auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  const auto minPatchSize = 3;
+  auto patches = formPatches(mesh, VERT, minPatchSize);
+  Graph expected(
+   {0,4,7,11,17,20,24,27,30,34},
+   {0,1,2,6,1,2,4,1,2,4,5,0,1,2,3,5,6,1,4,5,1,3,5,6,3,6,7,0,6,7,0,3,6,7});
+  OMEGA_H_CHECK(patches == expected);
+}
+
+void test1x5(Omega_h::Library& lib) {
+  auto world = lib.world();
+  const auto x = 1.0;
+  const auto y = 5.0;
+  const auto z = 0.0;
+  const auto nx = 1;
+  const auto ny = 5;
+  const auto nz = 0;
+  const auto symmetric = false;
+  auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  {
+    const auto minPatchSize = 3;
+    auto patches = formPatches(mesh, VERT, minPatchSize);
+    Graph expected(
+      {0,3,6,9,12,15,18,21,24,27,30,33,36},
+      {0,1,2,1,2,3,0,1,2,0,1,2,1,3,4,3,4,6,5,6,9,4,5,6,7,8,9,7,8,9,7,8,9,5,7,9});
+    OMEGA_H_CHECK(patches == expected);
+  }
+  {
+    const auto minPatchSize = 4;
+    auto patches = formPatches(mesh, VERT, minPatchSize);
+    Graph expected(
+       {0,4,9,13,17,22,27,32,37,41,45,49,54},
+       {0,1,2,3,0,1,2,3,4,0,1,2,3,0,1,2,3,1,2,3,4,6,1,3,
+        4,5,6,4,5,6,7,9,3,4,5,6,9,5,7,8,9,5,7,8,9,5,7,8,9,5,6,7,8,9});
+    OMEGA_H_CHECK(patches == expected);
+  }
+}
+
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   testGraphSort();
   testGraphDuplicateRemoval();
   OMEGA_H_CHECK(argc == 4);
+  verbose = std::stoi(argv[3]);
+  test2x2(lib);
+  test1x5(lib);
   Mesh mesh(&lib);
   binary::read(argv[1], lib.world(), &mesh);
-  verbose = std::stoi(argv[3]);
   auto patches = formPatches(mesh, VERT, 3);
   vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
