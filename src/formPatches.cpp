@@ -11,6 +11,8 @@
 
 using namespace Omega_h;
 
+bool verbose = false;
+
 void render(Mesh& m, Graph patches, std::string suffix) {
   const auto num_patches = patches.nnodes();
   auto offsets = patches.a2ab;
@@ -24,6 +26,7 @@ void render(Mesh& m, Graph patches, std::string suffix) {
 }
 
 void writeGraph(Graph g, std::string name="") {
+  if(verbose!=2) return;
   HostRead offsets(g.a2ab);
   HostRead values(g.ab2b);
   std::cout << "== " << name << " ==\n";
@@ -116,14 +119,6 @@ void writeGraph(Graph g, std::string name="") {
   return read(done);
 }
 
-template <typename T>
-void writeArray(T arr, std::string prefix) {
-  std::cout << prefix << "\n";
-  for(int i=0; i< arr.size(); i++) {
-    std::cout << i << ": " << arr[i] << "\n";
-  }
-}
-
 /**
  * \brief expand the patches
  * \param m (in) mesh of simplices
@@ -193,14 +188,16 @@ void writeArray(T arr, std::string prefix) {
   auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
   writeGraph(adjElms, "adjElms");
   for(Int iter = 0; iter < 10; iter++) {
-    std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
+    if(verbose==2) std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
     render(m,patches,std::to_string(bridgeDim));
     patchDone = patchSufficient(patches, minPatchSize);
-    if( get_min(patchDone) == 1 )
+    if( get_min(patchDone) == 1 ) {
+      if(verbose) std::cout << "iterations: " << iter << "\n";
       return patches;
+    }
   }
-  assert(false); //fails here
+  assert(false);
   return Graph();
 }
 
@@ -238,9 +235,10 @@ int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   testGraphSort();
   testGraphDuplicateRemoval();
-  OMEGA_H_CHECK(argc == 3);
+  OMEGA_H_CHECK(argc == 4);
   Mesh mesh(&lib);
   binary::read(argv[1], lib.world(), &mesh);
+  verbose = std::stoi(argv[3]);
   auto patches = formPatches(mesh, VERT, 3);
   vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
