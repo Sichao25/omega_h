@@ -12,8 +12,6 @@
 
 using namespace Omega_h;
 
-int verbose = 0;
-
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
@@ -124,11 +122,9 @@ int verbose = 0;
   //the minPatchSize is a conservative upper bound on the
   //iteration count
   for(Int iter = 0; iter < minPatchSize; iter++) {
-    if(verbose>=2) std::cout << iter << " expanding patch\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
     patchDone = patchSufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 ) {
-      if(verbose>=1) std::cout << "iterations: " << iter << "\n";
       return patches;
     }
   }
@@ -216,8 +212,7 @@ int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   testGraphSort();
   testGraphDuplicateRemoval();
-  OMEGA_H_CHECK(argc == 4);
-  verbose = std::stoi(argv[3]);
+  OMEGA_H_CHECK(argc == 3);
   test2x2(lib);
   test1x5(lib);
   Mesh mesh(&lib);
