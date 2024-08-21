@@ -75,7 +75,7 @@ void writeGraph(Graph g, std::string name="") {
   auto values = g.ab2b;
   Write<I8> keep(g.nedges());
   auto markDups = OMEGA_H_LAMBDA(LO i) {
-    keep[offsets[i]] = 1;
+    keep[offsets[i]] = 1; //always keep the first edge in the segment
     for(int j=offsets[i]+1; j<offsets[i+1]; j++) {
       keep[j] = (values[j-1] != values[j]);
     }
@@ -83,44 +83,6 @@ void writeGraph(Graph g, std::string name="") {
   parallel_for(g.nnodes(), markDups);
   auto filtered = filter_graph_edges(g,keep);
   return filtered;
-}
-
-[[nodiscard]] Graph getElmToElm2ndOrderAdj(Mesh& m, Int bridgeDim) {
-  const auto elmDim = m.dim();
-  OMEGA_H_CHECK(bridgeDim >= 0 && bridgeDim < elmDim);
-  if(bridgeDim == elmDim-1)
-    return m.ask_dual();
-  auto elm2Bridge = m.ask_down(elmDim, bridgeDim);
-  auto e2bDegree = simplex_degree(elmDim, bridgeDim);
-  auto e2bValues = elm2Bridge.ab2b;
-  //get bridge-to-elm
-  auto bridge2Elm = m.ask_up(bridgeDim, elmDim);
-  auto b2eOffsets = bridge2Elm.a2ab;
-  auto b2eValues = bridge2Elm.ab2b;
-  //traverse elm-to-bridge and bridge-to-elm to form elm-to-elm
-  //first count how many adj elms there are per elm
-  Write<LO> e2eDegree(m.nelems(),0);
-  parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
-    for(int j=i*e2bDegree; j<(i+1)*e2bDegree; j++) {
-      auto bridge = e2bValues[j];
-      e2eDegree[i] += b2eOffsets[bridge+1]-b2eOffsets[bridge];
-    }
-  });
-  auto e2eOffsets = offset_scan(read(e2eDegree));
-  Write<LO> e2eValues(e2eOffsets.last());
-  parallel_for(m.nelems(), OMEGA_H_LAMBDA(LO i) {
-    auto pos = e2eOffsets[i];
-    for(int j=i*e2bDegree; j<(i+1)*e2bDegree; j++) {
-      auto bridge = e2bValues[j];
-      for(int k=b2eOffsets[bridge]; k<b2eOffsets[bridge+1]; k++) {
-        assert(pos < e2eOffsets[i+1]);
-        e2eValues[pos++] = b2eValues[k];
-      }
-    }
-  });
-  auto e2e_unsorted = Graph(e2eOffsets, read(e2eValues));
-  auto e2e_dups = adj_segment_sort(e2e_unsorted);
-  return remove_duplicate_edges(e2e_dups);
 }
 
 [[nodiscard]] Read<I8> patchSufficient(Graph patches, Int minPatchSize) {
@@ -182,6 +144,8 @@ void writeGraph(Graph g, std::string name="") {
 /**
  * \brief form a patch of at least minPatchSize elements surrounding each entity
  *        of dimension keyDim
+ * \remark the patch is expanded via 2nd order adjacencies using meshDim-1 as
+ *         the bridge entity (e.g., faces for 3d, edges for 2d)
  * \param m (in) mesh of simplices
  * \param keyDim (in) the dimension of mesh entities that the patches are
  *        created around
@@ -198,13 +162,12 @@ void writeGraph(Graph g, std::string name="") {
   auto patchDone = patchSufficient(patches, minPatchSize);
   if( get_min(patchDone) == 1 )
     return patches;
-  const auto bridgeDim = m.dim()-1;
-  auto adjElms = getElmToElm2ndOrderAdj(m, bridgeDim);
+  auto adjElms = m.ask_dual();
   writeGraph(adjElms, "adjElms");
   for(Int iter = 0; iter < 10; iter++) {
-    if(verbose>=2) std::cout << iter << " expanding via bridge " << bridgeDim << "\n";
+    if(verbose>=2) std::cout << iter << " expanding patch\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
-    render(m,patches,std::to_string(bridgeDim));
+    render(m,patches,std::to_string(iter));
     patchDone = patchSufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 ) {
       if(verbose>=1) std::cout << "iterations: " << iter << "\n";
