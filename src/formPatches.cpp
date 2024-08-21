@@ -14,45 +14,6 @@ using namespace Omega_h;
 
 int verbose = 0;
 
-void render(Mesh& m, Graph patches, std::string suffix) {
-  const auto num_patches = patches.nnodes();
-  auto offsets = patches.a2ab;
-  Write<LO> degree(num_patches);
-  parallel_for(num_patches, OMEGA_H_LAMBDA(LO i) {
-    degree[i] = offsets[i+1]-offsets[i];
-  });
-  m.add_tag(VERT, "patchDegree", 1, read(degree));
-  std::string name = "patch_" + suffix + ".vtk";
-  vtk::write_parallel(name, &m, m.dim());
-}
-
-void writeGraph(Graph g, std::string name="") {
-  if(verbose<2) return;
-  HostRead offsets(g.a2ab);
-  HostRead values(g.ab2b);
-  std::cout << "== " << name << " ==\n";
-  for(int node = 0; node < g.nnodes(); node++) {
-    std::cout << node << ": ";
-     for(int edge = offsets[node]; edge < offsets[node+1]; edge++) {
-       std::cout << values[edge] << " ";
-     }
-     std::cout << "\n";
-  }
-  if(verbose<3) return;
-  std::cout << "offsets = {";
-  for(int i = 0; i < offsets.size(); i++) {
-    std::cout << offsets[i];
-    if(i!=offsets.size()-1) std::cout << ",";
-  }
-  std::cout << "};\n";
-  std::cout << "values = {";
-  for(int i = 0; i < values.size(); i++) {
-    std::cout << values[i];
-    if(i!=values.size()-1) std::cout << ",";
-  }
-  std::cout << "};\n";
-}
-
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
@@ -137,7 +98,6 @@ void writeGraph(Graph g, std::string name="") {
   Graph patchExpDup(patchExpDup_offsets,patchExpDup_elms);
   auto sorted = adj_segment_sort(patchExpDup);
   auto dedup = remove_duplicate_edges(sorted);
-  writeGraph(dedup, "dedup");
   return dedup;
 }
 
@@ -157,8 +117,6 @@ void writeGraph(Graph g, std::string name="") {
   OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = m.ask_up(VERT,m.dim());
-  writeGraph(patches);
-  render(m,patches,"init");
   auto patchDone = patchSufficient(patches, minPatchSize);
   if( get_min(patchDone) == 1 )
     return patches;
@@ -167,7 +125,6 @@ void writeGraph(Graph g, std::string name="") {
   for(Int iter = 0; iter < 10; iter++) {
     if(verbose>=2) std::cout << iter << " expanding patch\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
-    render(m,patches,std::to_string(iter));
     patchDone = patchSufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 ) {
       if(verbose>=1) std::cout << "iterations: " << iter << "\n";
