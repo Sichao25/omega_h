@@ -121,8 +121,10 @@ int verbose = 0;
   if( get_min(patchDone) == 1 )
     return patches;
   auto adjElms = m.ask_dual();
-  writeGraph(adjElms, "adjElms");
-  for(Int iter = 0; iter < 10; iter++) {
+  //assuming each iteration adds at least one element then
+  //the minPatchSize is a conservative upper bound on the
+  //iteration count
+  for(Int iter = 0; iter < minPatchSize; iter++) {
     if(verbose>=2) std::cout << iter << " expanding patch\n";
     patches = expandPatches(m, patches, adjElms, patchDone);
     patchDone = patchSufficient(patches, minPatchSize);
