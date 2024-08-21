@@ -102,19 +102,18 @@ int verbose = 0;
 }
 
 /**
- * \brief form a patch of at least minPatchSize elements surrounding each entity
- *        of dimension keyDim
+ * \brief form a patch of at least minPatchSize elements surrounding each mesh
+ *        vertex
  * \remark the patch is expanded via 2nd order adjacencies using meshDim-1 as
  *         the bridge entity (e.g., faces for 3d, edges for 2d)
  * \param m (in) mesh of simplices
- * \param keyDim (in) the dimension of mesh entities that the patches are
- *        created around
  * \param minPatchSize (in) the minimum number of elements in each patch
- * \return a graph whose source nodes are the entities of keyDim dimension, and
- *         edges are connecting to elements in the patch
+ * \return a graph whose source nodes are mesh vertices, and
+ *         edges are connecting to elements in the patch 
+ *         OR
+ *         an empty graph upon failure
  */
-[[nodiscard]] Graph formPatches(Mesh& m, LO keyDim, Int minPatchSize) {
-  OMEGA_H_CHECK(keyDim >= 0 && keyDim < m.dim());
+[[nodiscard]] Graph formVertexPatches(Mesh& m, Int minPatchSize) {
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = m.ask_up(VERT,m.dim());
   auto patchDone = patchSufficient(patches, minPatchSize);
@@ -133,7 +132,6 @@ int verbose = 0;
       return patches;
     }
   }
-  assert(false);
   return Graph();
 }
 
@@ -178,7 +176,7 @@ void test2x2(Omega_h::Library& lib) {
   const auto symmetric = false;
   auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   const auto minPatchSize = 3;
-  auto patches = formPatches(mesh, VERT, minPatchSize);
+  auto patches = formVertexPatches(mesh, minPatchSize);
   Graph expected(
    {0,4,7,11,17,20,24,27,30,34},
    {0,1,2,6,1,2,4,1,2,4,5,0,1,2,3,5,6,1,4,5,1,3,5,6,3,6,7,0,6,7,0,3,6,7});
@@ -197,7 +195,7 @@ void test1x5(Omega_h::Library& lib) {
   auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   {
     const auto minPatchSize = 3;
-    auto patches = formPatches(mesh, VERT, minPatchSize);
+    auto patches = formVertexPatches(mesh, minPatchSize);
     Graph expected(
       {0,3,6,9,12,15,18,21,24,27,30,33,36},
       {0,1,2,1,2,3,0,1,2,0,1,2,1,3,4,3,4,6,5,6,9,4,5,6,7,8,9,7,8,9,7,8,9,5,7,9});
@@ -205,7 +203,7 @@ void test1x5(Omega_h::Library& lib) {
   }
   {
     const auto minPatchSize = 4;
-    auto patches = formPatches(mesh, VERT, minPatchSize);
+    auto patches = formVertexPatches(mesh, minPatchSize);
     Graph expected(
        {0,4,9,13,17,22,27,32,37,41,45,49,54},
        {0,1,2,3,0,1,2,3,4,0,1,2,3,0,1,2,3,1,2,3,4,6,1,3,
@@ -224,6 +222,7 @@ int main(int argc, char** argv) {
   test1x5(lib);
   Mesh mesh(&lib);
   binary::read(argv[1], lib.world(), &mesh);
-  auto patches = formPatches(mesh, VERT, 3);
+  auto patches = formVertexPatches(mesh, 3);
+  OMEGA_H_CHECK(patches.nnodes() != 0);
   vtk::write_parallel(argv[2], &mesh, mesh.dim());
 }
