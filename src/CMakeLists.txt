@@ -170,6 +170,16 @@ if(Omega_h_USE_SimModSuite)
     "${CMAKE_CURRENT_BINARY_DIR}/Omega_h_simConfig.h")
 endif()
 
+if(Omega_h_USE_ADIOS2)
+	message(STATUS "Omega_h_USE_ADIOS2: ${Omega_h_USE_ADIOS2}")
+  #Is there a better way? I assume CMAKE_MODULE_PATH was purposely not set in
+  # the top level CMakeLists.txt
+  set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+  find_package(ADIOS2 MODULE REQUIRED)
+  set(CMAKE_MODULE_PATH ${OLD_CMAKE_MODULE_PATH})
+endif()
+
 if(Omega_h_USE_SEACASExodus)
   set(Omega_h_SOURCES ${Omega_h_SOURCES} Omega_h_exodus.cpp)
 endif()
@@ -222,6 +232,11 @@ if(Omega_h_USE_SimModSuite)
   target_link_libraries(omega_h PUBLIC "${SIMMODSUITE_LIBS}")
 endif()
 
+if(Omega_h_USE_ADIOS2)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DADIOS2_USE_MPI")
+	target_include_directories(omega_h PUBLIC "${ADIOS2_INCLUDE_DIR}")
+	target_link_libraries(omega_h PUBLIC "${ADIOS2_LIBS}")
+endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
 
@@ -608,6 +623,11 @@ if(BUILD_TESTING)
     test_func(describe_partitioned 2 ./describe ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p.osh)
   else()
     test_func(describe_serial 1 ./describe ${CMAKE_SOURCE_DIR}/meshes/box_3d.osh)
+  endif()
+
+  if (Omega_h_USE_ADIOS2)
+	  osh_add_exe(adios2_io)
+	  test_basefunc(adios2_io 1 ./adios2_io)
   endif()
 endif()
 
