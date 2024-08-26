@@ -31,19 +31,28 @@ void writer(adios2::ADIOS &adios)
     const std::string greeting = "Hello World from ADIOS2";
     std::vector<float> myFloats;
     std::vector<int> myInts;
-    for (int i=0; i<10; ++i)
+    for (int i=0; i<(rank+1); ++i)
     {
-      myFloats.push_back(i*rank);
-      myInts.push_back(i*(-1)*rank);
+      myFloats.push_back(i*rank*2);
     }
     const std::size_t Nx = myFloats.size();
+    myInts.push_back(Nx);
 
      adios2::Variable<float> bpFloats = io.DefineVariable<float>(
             "bpFloats", {size * Nx}, {rank * Nx}, {Nx}, adios2::ConstantDims);
 
-     adios2::Variable<int> bpInts = io.DefineVariable<int>("bpInts", {size * Nx}, {rank * Nx},
-                                                                {Nx}, adios2::ConstantDims);
-    const std::string myString("Hello Variable String from rank " + std::to_string(rank));
+     adios2::Variable<int> bpInts = io.DefineVariable<int>("bpInts", {size}, {rank},
+		     {1}, adios2::ConstantDims);
+
+    const std::string myString("Variable String from rank " + std::to_string(rank));
+
+    for (int i=0; i<size; ++i)
+    {
+      if (rank == i)
+        std::cout << "("<<rank<<") array size "<<Nx<<", string: "<<myString <<"\n";
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+
     adios2::Variable<std::string> bpString = io.DefineVariable<std::string>("bpString");
         (void)bpString;
 
@@ -55,7 +64,7 @@ void writer(adios2::ADIOS &adios)
     writer.Put(bpFloats, myFloats.data());
     writer.Put(bpInts, myInts.data());
     writer.Put(bpString, myString);
-    writer.Put(varGreeting, greeting);
+//    writer.Put(varGreeting, greeting);
     writer.EndStep();
     writer.Close();
     if (rank == 0)
@@ -66,17 +75,78 @@ void writer(adios2::ADIOS &adios)
         }
 }
 
-std::string reader(adios2::ADIOS &adios)
+void reader(adios2::ADIOS &adios)
 {
+    int rank, size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     adios2::IO io = adios.DeclareIO("hello-world-reader");
     adios2::Engine reader = io.Open("hello-world.bp", adios2::Mode::Read);
+
     reader.BeginStep();
-    adios2::Variable<std::string> varGreeting = io.InquireVariable<std::string>("Greeting");
-    std::string greeting;
-    reader.Get(varGreeting, greeting);
+    const std::map<std::string, adios2::Params> variables = io.AvailableVariables();
+    for (const auto &variablePair : variables)
+    {
+      std::cout << "Name: " << variablePair.first;
+      for (const auto &parameter : variablePair.second)
+      {
+        std::cout << "\t" << parameter.first << ": " << parameter.second << "\n";
+      }
+    }
+
+    adios2::Variable<float> bpFloats = io.InquireVariable<float>("bpFloats");
+    adios2::Variable<int> bpInts = io.InquireVariable<int>("bpInts");
+
+    std::size_t Nx=1;
+
+    if (bpInts) // means not found
+    {
+      std::vector<int> myInts;
+      // read only the chunk corresponding to our rank
+      bpInts.SetSelection({{rank}, {1}});
+
+      reader.Get(bpInts, myInts, adios2::Mode::Sync);
+      Nx=myInts[0];
+    }
+
+   if (bpFloats) // means found
+  {
+   std::vector<float> myFloats;
+
+   // read only the chunk corresponding to our rank
+   bpFloats.SetSelection({{Nx * rank}, {Nx}});
+   reader.Get(bpFloats, myFloats, adios2::Mode::Sync);
+
+   for (int i=0; i<size; ++i)
+   { 
+     if (rank == i)
+     {
+       std::cout << "array size "<<Nx<<"\n";
+       for (const auto number : myFloats)
+           std::cout <<"("<< rank<<") "<<number << " ";
+     }
+     MPI_Barrier(MPI_COMM_WORLD);
+     std::cout << "\n";
+   }
+}
+
+    adios2::Variable<std::string> varText = io.InquireVariable<std::string>("bpString");
+    std::string text;
+    reader.Get(varText, text);
+
+//    adios2::Variable<std::string> varGreeting = io.InquireVariable<std::string>("Greeting");
+//    std::string greeting;
+//    reader.Get(varGreeting, greeting);
+
+    for (int i=0; i<size; ++i)
+    {
+      if (rank == i)
+        std::cout << "("<<rank<<") "<<text <<"\n";
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
     reader.EndStep();
     reader.Close();
-    return greeting;
 }
 
 int main(int argc, char *argv[])
@@ -102,9 +172,12 @@ int main(int argc, char *argv[])
         writer(adios);
 	auto t1= Omega_h::now();
         if (!rank)
-    std::cout << "write " << (t1 - t0)<<" (sec)\n";
-        const std::string message = reader(adios);
-        if (!rank) std::cout << message << "\n";
+          std::cout << "write " << (t1 - t0)<<" (sec)\n";
+
+        reader(adios);
+	t0 = Omega_h::now();
+
+        if (!rank) std::cout << "read " << (t0 - t1)<<" (sec)\n";
     }
     catch (std::exception &e)
     {
