@@ -1,18 +1,12 @@
-#include <Omega_h_file.hpp>
-#include <Omega_h_library.hpp>
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_for.hpp> //parallel_for
 #include <Omega_h_array_ops.hpp> //get_min
 #include <Omega_h_int_scan.hpp> //offset_scan
-#include <Omega_h_simplex.hpp> //simplex_degree
-#include <Kokkos_NestedSort.hpp> //sort_team
-#include <Omega_h_build.hpp> //build_box
-
-#include <cstdlib>
 
 using namespace Omega_h;
 
 #if defined(OMEGA_H_USE_KOKKOS)
+#include <Kokkos_NestedSort.hpp> //sort_team
 
 namespace {
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
@@ -65,7 +59,7 @@ namespace {
  *                     used for expansion
  * \return an expanded graph from key entities to elements
 */
-//FIXME ideally, this used the Omega_h_map and Omega_h_graph functions
+//TODO use Omega_h_map and Omega_h_graph functions
 [[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Graph adjElms, Read<I8> patchDone) {
   auto adjElms_offsets = adjElms.a2ab;
   auto adjElms_elms = adjElms.ab2b;
@@ -125,9 +119,11 @@ namespace {
 
 #else
 [[nodiscard]] Graph Mesh::get_vtx_patches(Int minPatchSize) {
-  auto message = "Patch creation requires Kokkos support.  Please rebuild with Kokkos enabled.\n";
+  const auto message = "get_vtx_patches requires Kokkos.  Please rebuild with Kokkos enabled.\n";
+  static_assert(false,message);
   if( library_->self() == 0 ) {
     std::cerr << message;
+    exit(EXIT_FAILURE);
   }
   return Graph();
 }
