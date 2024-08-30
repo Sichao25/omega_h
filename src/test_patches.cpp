@@ -3,8 +3,6 @@
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_build.hpp> //build_box
 
-#include <cstdlib>
-
 using namespace Omega_h;
 
 void test2x2(Omega_h::CommPtr comm) {
@@ -66,21 +64,35 @@ void test3D(Omega_h::CommPtr comm) {
   auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   const auto minPatchSize = 3;
   auto patches = mesh.get_vtx_patches(minPatchSize);
+  OMEGA_H_CHECK(patches.nnodes() != -1);
 }
 
 void testPar(Omega_h::CommPtr comm) {
   OMEGA_H_CHECK(comm->size() == 4);
   const auto x = 1.0;
   const auto y = 1.0;
-  const auto z = 1.0;
+  const auto z = 0.0;
   const auto nx = 4;
   const auto ny = 4;
-  const auto nz = 4;
+  const auto nz = 0;
   const auto symmetric = false;
   auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   mesh.set_parting(OMEGA_H_GHOSTED);
-  const auto minPatchSize = 4;
-  auto patches = mesh.get_vtx_patches(minPatchSize);
+  {
+    const auto min_elems = comm->allreduce(mesh.nelems(), OMEGA_H_MIN);
+    const auto minPatchSize = min_elems+1;
+    auto patches = mesh.get_vtx_patches(minPatchSize);
+    if( mesh.nelems() < minPatchSize ) {
+      OMEGA_H_CHECK(patches.nnodes() == -1); //expected to fail
+    } else {
+      OMEGA_H_CHECK(patches.nnodes() != -1); //expected to pass
+    }
+  }
+  {
+    const auto minPatchSize = 6;
+    auto patches = mesh.get_vtx_patches(minPatchSize);
+    OMEGA_H_CHECK(patches.nnodes() != -1);
+  }
 }
 
 int main(int argc, char** argv) {
