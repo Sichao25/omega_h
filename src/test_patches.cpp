@@ -7,8 +7,8 @@
 
 using namespace Omega_h;
 
-void test2x2(Omega_h::Library& lib) {
-  auto world = lib.world();
+void test2x2(Omega_h::CommPtr comm) {
+  OMEGA_H_CHECK(comm->size() == 1);
   const auto x = 2.0;
   const auto y = 2.0;
   const auto z = 0.0;
@@ -16,7 +16,7 @@ void test2x2(Omega_h::Library& lib) {
   const auto ny = 2;
   const auto nz = 0;
   const auto symmetric = false;
-  auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   const auto minPatchSize = 3;
   auto patches = mesh.get_vtx_patches(minPatchSize);
   Graph expected(
@@ -25,8 +25,8 @@ void test2x2(Omega_h::Library& lib) {
   OMEGA_H_CHECK(patches == expected);
 }
 
-void test1x5(Omega_h::Library& lib) {
-  auto world = lib.world();
+void test1x5(Omega_h::CommPtr comm) {
+  OMEGA_H_CHECK(comm->size() == 1);
   const auto x = 1.0;
   const auto y = 5.0;
   const auto z = 0.0;
@@ -34,7 +34,7 @@ void test1x5(Omega_h::Library& lib) {
   const auto ny = 5;
   const auto nz = 0;
   const auto symmetric = false;
-  auto mesh = Omega_h::build_box(world, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
   {
     const auto minPatchSize = 3;
     auto patches = mesh.get_vtx_patches(minPatchSize);
@@ -54,10 +54,46 @@ void test1x5(Omega_h::Library& lib) {
   }
 }
 
+void test3D(Omega_h::CommPtr comm) {
+  OMEGA_H_CHECK(comm->size() == 1);
+  const auto x = 1.0;
+  const auto y = 1.0;
+  const auto z = 1.0;
+  const auto nx = 2;
+  const auto ny = 2;
+  const auto nz = 2;
+  const auto symmetric = false;
+  auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  const auto minPatchSize = 3;
+  auto patches = mesh.get_vtx_patches(minPatchSize);
+}
+
+void testPar(Omega_h::CommPtr comm) {
+  OMEGA_H_CHECK(comm->size() == 4);
+  const auto x = 1.0;
+  const auto y = 1.0;
+  const auto z = 1.0;
+  const auto nx = 4;
+  const auto ny = 4;
+  const auto nz = 4;
+  const auto symmetric = false;
+  auto mesh = Omega_h::build_box(comm, OMEGA_H_SIMPLEX, x, y, z, nx, ny, nz, symmetric);
+  mesh.set_parting(OMEGA_H_GHOSTED);
+  const auto minPatchSize = 4;
+  auto patches = mesh.get_vtx_patches(minPatchSize);
+}
+
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
+  auto world = lib.world();
   OMEGA_H_CHECK(argc == 1);
-  test2x2(lib);
-  test1x5(lib);
+  if (world->rank() == 0) {
+    test2x2(lib.self());
+    test1x5(lib.self());
+    test3D(lib.self());
+  }
+  if (world->size() == 4) {
+    testPar(world);
+  }
   return 0;
 }
