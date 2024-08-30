@@ -116,15 +116,4 @@ namespace {
   }
   return Graph();
 }
-
-#else
-[[nodiscard]] Graph Mesh::get_vtx_patches(Int minPatchSize) {
-  const auto message = "get_vtx_patches requires Kokkos.  Please rebuild with Kokkos enabled.\n";
-  static_assert(false,message);
-  if( library_->self() == 0 ) {
-    std::cerr << message;
-    exit(EXIT_FAILURE);
-  }
-  return Graph();
-}
 #endif
