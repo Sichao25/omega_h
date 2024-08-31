@@ -46,7 +46,9 @@ jobs:
 
     - name: print info      
       run: |
-           echo "Compiler: ${{matrix.compiler}} --version"
+           version=
+           echo "Compiler: ${{matrix.compiler}}"
+           ${{matrix.compiler}} --version
            echo "MPI: ${{matrix.mpi}}"
            echo "Kokkos: ${{matrix.kokkos}}"
            echo "Memory Pool: ${{matrix.mempool}}"
