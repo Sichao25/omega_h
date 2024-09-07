@@ -1,190 +1,164 @@
 /*
- * Distributed under the OSI-approved Apache License, Version 2.0.  See
- * accompanying file Copyright.txt for details.
  *
- * hello-world.cpp : adios2 low-level API example to write and read a
- *                   std::string Variable with a greeting
+ * .cpp : adios2 low-level API example to write and read arrays and string
  *
- *  Created on: Nov 14, 2019
- *      Author: William F Godoy godoywf@ornl.gov
+ *  Created on: Aug 25, 2024
+ *  Author: Seegyoung Seol seols@rpi.edu
+ *
  */
 #include <Omega_h_timer.hpp>
 #include <Omega_h_file.hpp>
 #include <Omega_h_cmdline.hpp>
+#include "Omega_h_build.hpp" // build_box
+#include "Omega_h_library.hpp" // world
+#include "Omega_h_mesh.hpp"
+#include "Omega_h_inertia.hpp" // Rib
+#include "Omega_h_tag.hpp" //class_ids
+#include "Omega_h_defines.hpp"
+#include "Omega_h_adios2.hpp"
+#include <Omega_h_compare.hpp> // MeshCompareOpts
+#include "Omega_h_array_ops.hpp" // each_eq_to
+#include "Omega_h_element.hpp" // topological_singular_name
+#include "Omega_h_mixedMesh.hpp" // family
 #include <iostream>
 #include <stdexcept>
+#include <iomanip>
 
 #include <adios2.h>
 #if ADIOS2_USE_MPI
 #include <mpi.h>
 #endif
 
+using namespace Omega_h;
+using namespace std;
+
+// printTagInfo and getNumEq copied from describe.cpp
+template <typename T>
+void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag, std::string type) {
+    auto tagbase = mesh.get_tag(dim, tag);
+    auto array = Omega_h::as<T>(tagbase)->array();
+
+    Omega_h::Real min = get_min(array);
+    Omega_h::Real max = get_max(array);
+
+    oss << std::setw(18) << std::left << tagbase->name().c_str()
+        << std::setw(5) << std::left << dim
+        << std::setw(7) << std::left << type
+        << std::setw(5) << std::left << tagbase->ncomps()
+        << std::setw(10) << std::left << min
+        << std::setw(10) << std::left << max
+        << "\n";
+}
+
+template <typename T>
+int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
+    auto array = mesh.get_array<T>(dim, tagname);
+    auto each_eq_to = Omega_h::each_eq_to<T>(array, value);
+    return Omega_h::get_sum(each_eq_to);
+}
+
+void print_info(Library* lib, Omega_h::Mesh mesh);
+
 // to check the content of .bp, run /lore/seols/romulus-install/bin/bpls
-// ex. ./bpls hello-world.bp
-void writer(adios2::ADIOS &adios)
-{ 
-    int rank, size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    adios2::IO io = adios.DeclareIO("test-writer");
-
-    const std::string greeting = "Hello World from ADIOS2";
-    std::vector<float> myFloats;
-    std::vector<int> myInts;
-    for (int i=0; i<(rank+1); ++i)
-    {
-      myFloats.push_back(i*rank*2);
-    }
-    const std::size_t Nx = myFloats.size();
-    myInts.push_back(Nx);
-
-     adios2::Variable<float> bpFloats = io.DefineVariable<float>(
-            "bpFloats", {size * Nx}, {rank * Nx}, {Nx}, adios2::ConstantDims);
-
-     adios2::Variable<int> bpInts = io.DefineVariable<int>("bpInts", {size}, {rank},
-		     {1}, adios2::ConstantDims);
-
-    const std::string myString("Variable String from rank " + std::to_string(rank));
-
-    for (int i=0; i<size; ++i)
-    {
-      if (rank == i)
-        std::cout << "("<<rank<<") array size "<<Nx<<", string: "<<myString <<"\n";
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
-
-    adios2::Variable<std::string> bpString = io.DefineVariable<std::string>("bpString");
-        (void)bpString;
-
-    adios2::Variable<std::string> varGreeting = io.DefineVariable<std::string>("Greeting");
-
-    std::string filename = "hello-world.bp";
-    adios2::Engine writer = io.Open(filename, adios2::Mode::Write);
-    writer.BeginStep();
-    writer.Put(bpFloats, myFloats.data());
-    writer.Put(bpInts, myInts.data());
-    writer.Put(bpString, myString);
-//    writer.Put(varGreeting, greeting);
-    writer.EndStep();
-    writer.Close();
-    if (rank == 0)
-        {
-            std::cout << "Wrote file " << filename
-                      << " to disk. It can now be read by running "
-                         "adios2_install/bin/bpls.\n";
-        }
-}
-
-void reader(adios2::ADIOS &adios)
-{
-    int rank, size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    adios2::IO io = adios.DeclareIO("hello-world-reader");
-    adios2::Engine reader = io.Open("hello-world.bp", adios2::Mode::Read);
-
-    reader.BeginStep();
-    const std::map<std::string, adios2::Params> variables = io.AvailableVariables();
-    for (const auto &variablePair : variables)
-    {
-      std::cout << "Name: " << variablePair.first;
-      for (const auto &parameter : variablePair.second)
-      {
-        std::cout << "\t" << parameter.first << ": " << parameter.second << "\n";
-      }
-    }
-
-    adios2::Variable<float> bpFloats = io.InquireVariable<float>("bpFloats");
-    adios2::Variable<int> bpInts = io.InquireVariable<int>("bpInts");
-
-    std::size_t Nx=1;
-
-    if (bpInts) // means not found
-    {
-      std::vector<int> myInts;
-      // read only the chunk corresponding to our rank
-      bpInts.SetSelection({{rank}, {1}});
-
-      reader.Get(bpInts, myInts, adios2::Mode::Sync);
-      Nx=myInts[0];
-    }
-
-   if (bpFloats) // means found
-  {
-   std::vector<float> myFloats;
-
-   // read only the chunk corresponding to our rank
-   bpFloats.SetSelection({{Nx * rank}, {Nx}});
-   reader.Get(bpFloats, myFloats, adios2::Mode::Sync);
-
-   for (int i=0; i<size; ++i)
-   { 
-     if (rank == i)
-     {
-       std::cout << "array size "<<Nx<<"\n";
-       for (const auto number : myFloats)
-           std::cout <<"("<< rank<<") "<<number << " ";
-     }
-     MPI_Barrier(MPI_COMM_WORLD);
-     std::cout << "\n";
-   }
-}
-
-    adios2::Variable<std::string> varText = io.InquireVariable<std::string>("bpString");
-    std::string text;
-    reader.Get(varText, text);
-
-//    adios2::Variable<std::string> varGreeting = io.InquireVariable<std::string>("Greeting");
-//    std::string greeting;
-//    reader.Get(varGreeting, greeting);
-
-    for (int i=0; i<size; ++i)
-    {
-      if (rank == i)
-        std::cout << "("<<rank<<") "<<text <<"\n";
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
-    reader.EndStep();
-    reader.Close();
-}
+// ex. ./bpls mesh.bp
 
 int main(int argc, char *argv[])
 {
   auto lib = Omega_h::Library(&argc, &argv);
-  auto t0 = Omega_h::now();
-  Omega_h::Now t1;
   auto world = lib.world();
-  auto rank = world->rank();
-  auto size = world->size();
 
-  std::vector<float> myFloats = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  std::vector<int> myInts = {0, -1, -2, -3, -4, -5, -6, -7, -8, -9};
-  const std::size_t Nx = myFloats.size();
+  Omega_h::CmdLine cmdline;
 
-    const std::string myString("Hello Variable String from rank " + std::to_string(rank));
+  cmdline.add_arg<std::string>("input.osh");
+  cmdline.add_arg<std::string>("output.bp");
+  if (!cmdline.parse_final(world, &argc, argv)) return -1;
+  auto inpath = cmdline.get<std::string>("input.osh");
+  auto outpath=cmdline.get<std::string>("output.bp");
 
-    try
+  Omega_h::Mesh mesh(&lib);
+  Omega_h::binary::read(inpath, world, &mesh);
+  cout<<"\n--- Mesh loaded from \""<<inpath<<"\" ---\n";
+  print_info(&lib, mesh);
+
+//  Omega_h::Mesh mesh = build_box(world, OMEGA_H_SIMPLEX, 1., 1., 0., 2, 2, 0);
+  Omega_h::binary::write("omegah.osh", &mesh);
+  Omega_h::vtk::write_parallel("omegah.vtk", &mesh);
+
+  try
+  {
+    write_adios2(outpath, &mesh);
+    Omega_h::Mesh mesh2 = read_adios2(outpath, &lib);
+    Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
+
+    cout<<"\n\n--- Mesh loaded back from \""<<outpath<<"\" ---\n";
+    print_info(&lib, mesh2);
+
+    Omega_h::Mesh mesh3(&lib);
+    Omega_h::binary::read("omegah.osh", world, &mesh3);
+    Omega_h::vtk::write_parallel("omegah_bk.vtk", &mesh3);
+
+    write_adios2("out2.bp", &mesh2);
+    Omega_h::Mesh mesh4 = read_adios2("out2.bp", &lib);
+    Omega_h::vtk::write_parallel("adios2_bk.vtk", &mesh4);
+
+    double tol = 1e-6, floor = 0.0;
+    bool allow_superset = false;
+    auto opts = MeshCompareOpts::init(
+                &mesh, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
+    auto res = compare_meshes(&mesh, &mesh2, opts, true);
+    if (res == OMEGA_H_SAME || (allow_superset && res == OMEGA_H_MORE))
     {
-        adios2::ADIOS adios(MPI_COMM_WORLD);
-
-	t0 = Omega_h::now();
-        writer(adios);
-	auto t1= Omega_h::now();
-        if (!rank)
-          std::cout << "write " << (t1 - t0)<<" (sec)\n";
-
-        reader(adios);
-	t0 = Omega_h::now();
-
-        if (!rank) std::cout << "read " << (t0 - t1)<<" (sec)\n";
+      cout << "\nSUCCESS! Two meshes (.osh and .bp) are the same\n";
+      return 0;
     }
-    catch (std::exception &e)
-    {
-        std::cout << "ERROR: ADIOS2 exception: " << e.what() << "\n";
+    cout << "\nFAIL! Two meshes (.osh and .bp) are NOT the same\n";
+     return 2;
+   }
+   catch (std::exception &e)
+   {
+     std::cout << "\nERROR: ADIOS2 exception: " << e.what() << "\n";
 #if ADIOS2_USE_MPI
-        MPI_Abort(MPI_COMM_WORLD, -1);
+     MPI_Abort(lib.world()->get_impl(), -1);
 #endif
-    }
+   }
     return 0;
+}
+
+// serial only at the moment
+void print_info(Library* lib, Omega_h::Mesh mesh)
+{
+  auto rank = lib->world()->rank();
+  
+  ostringstream oss;
+  // always print two places to the right of the decimal
+  // for floating point types (i.e., imbalance)
+  oss.precision(2);
+  oss << std::fixed;
+
+  if (!rank) 
+  {
+    oss << "\nEntity Type: " << Omega_h::topological_singular_name(mesh.family(), mesh.dim()) << "\n";
+
+    oss << "\nEntity Count and Imbalance: (Dim, #Global, #Local, Max/Ave Imbalance)\n";
+    for (int dim=0; dim <= mesh.dim(); dim++)
+      oss << "(" << dim << ", " 
+  	  << mesh.nglobal_ents(dim) << ", " 
+    	  <<mesh.nents(dim)<< ", " 
+	  << mesh.imbalance(dim) << ")\n";
+
+    oss << "\nTag by Dimension: (Name, Dim, Type, #Components, Min/Max Value)\n";
+    for (int dim=0; dim <= mesh.dim(); dim++)
+      for (int tag=0; tag < mesh.ntags(dim); tag++) {
+        auto tagbase = mesh.get_tag(dim, tag);
+        if (tagbase->type() == OMEGA_H_I8)
+          printTagInfo<Omega_h::I8>(mesh, oss, dim, tag, "I8");
+        if (tagbase->type() == OMEGA_H_I32)
+          printTagInfo<Omega_h::I32>(mesh, oss, dim, tag, "I32");
+        if (tagbase->type() == OMEGA_H_I64)
+     	  printTagInfo<Omega_h::I64>(mesh, oss, dim, tag, "I64");
+        if (tagbase->type() == OMEGA_H_F64)
+          printTagInfo<Omega_h::Real>(mesh, oss, dim, tag, "F64");
+      }
+    std::cout << oss.str();
+  }
 }

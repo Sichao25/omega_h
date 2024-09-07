@@ -36,6 +36,7 @@ set(Omega_h_SOURCES
   Omega_h_fail.cpp
   Omega_h_fence.cpp
   Omega_h_file.cpp
+  Omega_h_adios2.cpp
   Omega_h_filesystem.cpp
   Omega_h_finite_automaton.cpp
   Omega_h_fix.cpp
@@ -632,10 +633,12 @@ if(BUILD_TESTING)
   endif()
 
   if (Omega_h_USE_ADIOS2)
-	  osh_add_exe(adios2_io)
 	  osh_add_util(bp2osh)
 	  osh_add_util(osh2bp)
-	  test_basefunc(adios2_io 1 ./adios2_io)
+	  osh_add_exe(adios2_io)
+	  test_basefunc(adios2_io 1 ./adios2_io
+		  ${CMAKE_SOURCE_DIR}/meshes/unitbox_cutTriCube_1k.osh
+		  output.bp)
   endif()
 endif()
 
@@ -670,6 +673,7 @@ set(Omega_h_HEADERS
   Omega_h_fence.hpp
   Omega_h_few.hpp
   Omega_h_file.hpp
+  Omega_h_adios2.hpp
   Omega_h_filesystem.hpp
   Omega_h_finite_automaton.hpp
   Omega_h_for.hpp
