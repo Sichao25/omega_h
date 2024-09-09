@@ -36,7 +36,6 @@ set(Omega_h_SOURCES
   Omega_h_fail.cpp
   Omega_h_fence.cpp
   Omega_h_file.cpp
-  Omega_h_adios2.cpp
   Omega_h_filesystem.cpp
   Omega_h_finite_automaton.cpp
   Omega_h_fix.cpp
@@ -171,8 +170,9 @@ if(Omega_h_USE_SimModSuite)
     "${CMAKE_CURRENT_BINARY_DIR}/Omega_h_simConfig.h")
 endif()
 
+message(STATUS "Omega_h_USE_ADIOS2: ${Omega_h_USE_ADIOS2}")
 if(Omega_h_USE_ADIOS2)
-	message(STATUS "Omega_h_USE_ADIOS2: ${Omega_h_USE_ADIOS2}")
+  list(APPEND Omega_h_SOURCES Omega_h_adios2.cpp)
   #Is there a better way? I assume CMAKE_MODULE_PATH was purposely not set in
   # the top level CMakeLists.txt
   set(OLD_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
@@ -234,15 +234,14 @@ if(Omega_h_USE_SimModSuite)
 endif()
 
 if(Omega_h_USE_ADIOS2)
-	set(ADIOS_REQUIRED_VERSION 2.10)
-if (Omega_h_USE_MPI)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DADIOS2_USE_MPI")
-	#	message("CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
-	target_include_directories(omega_h PUBLIC "${ADIOS2_INCLUDE_DIR}")
-	target_link_libraries(omega_h PUBLIC "${ADIOS2_LIBS}")
-else()
-	message("set Omega_h_USE_MPI to use ADIOS2")
-endif()
+  set(ADIOS_REQUIRED_VERSION 2.10)
+  if (Omega_h_USE_MPI)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DADIOS2_USE_MPI")
+    target_include_directories(omega_h PUBLIC "${ADIOS2_INCLUDE_DIR}")
+    target_link_libraries(omega_h PUBLIC "${ADIOS2_LIBS}")
+  else()
+    message("set Omega_h_USE_MPI to use ADIOS2")
+  endif()
 endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
@@ -633,12 +632,12 @@ if(BUILD_TESTING)
   endif()
 
   if (Omega_h_USE_ADIOS2)
-	  osh_add_util(bp2osh)
-	  osh_add_util(osh2bp)
-	  osh_add_exe(adios2_io)
-	  test_basefunc(adios2_io 1 ./adios2_io
-		  ${CMAKE_SOURCE_DIR}/meshes/unitbox_cutTriCube_1k.osh
-		  output.bp)
+    osh_add_util(bp2osh)
+    osh_add_util(osh2bp)
+    osh_add_exe(adios2_io)
+    test_basefunc(adios2_io 1 ./adios2_io
+	  ${CMAKE_SOURCE_DIR}/meshes/unitbox_cutTriCube_1k.osh
+	  output.bp)
   endif()
 endif()
 
@@ -673,7 +672,6 @@ set(Omega_h_HEADERS
   Omega_h_fence.hpp
   Omega_h_few.hpp
   Omega_h_file.hpp
-  Omega_h_adios2.hpp
   Omega_h_filesystem.hpp
   Omega_h_finite_automaton.hpp
   Omega_h_for.hpp
@@ -754,6 +752,10 @@ if(Omega_h_USE_Kokkos)
   list(APPEND Omega_h_HEADERS Omega_h_array_kokkos.hpp)
 else()
   list(APPEND Omega_h_HEADERS Omega_h_array_default.hpp)
+endif()
+
+if(Omega_h_USE_ADIOS2)
+  list(APPEND Omega_h_HEADERS Omega_h_adios2.hpp)
 endif()
 
 install(FILES ${Omega_h_HEADERS} DESTINATION include)

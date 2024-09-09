@@ -93,14 +93,6 @@ int main(int argc, char *argv[])
     cout<<"\n\n--- Mesh loaded back from \""<<outpath<<"\" ---\n";
     print_info(&lib, mesh2);
 
-    Omega_h::Mesh mesh3(&lib);
-    Omega_h::binary::read("omegah.osh", world, &mesh3);
-    Omega_h::vtk::write_parallel("omegah_bk.vtk", &mesh3);
-
-    write_adios2("out2.bp", &mesh2);
-    Omega_h::Mesh mesh4 = read_adios2("out2.bp", &lib);
-    Omega_h::vtk::write_parallel("adios2_bk.vtk", &mesh4);
-
     double tol = 1e-6, floor = 0.0;
     bool allow_superset = false;
     auto opts = MeshCompareOpts::init(

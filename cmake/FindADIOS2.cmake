@@ -69,8 +69,8 @@ string(REGEX REPLACE
 set(MIN_VALID_ADIOS2_VERSION 2.10.0)
 set(MAX_VALID_ADIOS2_VERSION 2.10.10)
 #if( ${SKIP_ADIOS2_VERSION_CHECK} )
-	message(STATUS "Skipping ADIOS2 version check."
-    " This may result in undefined behavior")
+#	message(STATUS "Skipping ADIOS2 version check."
+#    " This may result in undefined behavior")
 #elseif( (ADIOS2_DOT_VERSION VERSION_LESS MIN_VALID_ADIOS2_VERSION) OR
 #	(ADIOS2_DOT_VERSION VERSION_GREATER MAX_VALID_ADIOS2_VERSION) )
 #  MESSAGE(FATAL_ERROR 
@@ -82,34 +82,15 @@ message(STATUS "Building with ADIOS2 ${ADIOS2_DOT_VERSION}")
 set(ADIOS2_LIBS "")
 
 if (Omega_h_USE_MPI)
-	set(ADIOS2_LIB_NAMES
-adios2_core_mpi
-adios2_evpath
-adios2_hello_inlineMixedLang
-adios2_atl    
-adios2_cxx11
-adios2_ffs
-adios2_plugins_exampleReadPlugin
-adios2_c
-adios2_cxx11_mpi
-adios2_plugins_exampleWritePlugin
-adios2_c_mpi
-adios2_dill
-adios2_core 
-adios2_enet
-adios2_h5vol
+set(ADIOS2_LIB_NAMES
+	adios2_core_mpi
+	adios2_cxx11_mpi
 )
 else()
-	set(ADIOS2_LIB_NAMES
-    adios2_atl
-    adios2_core
-    adios2_c
-    adios2_cxx11
-    adios2_dill
-    adios2_enet
-    adios2_evpath
-    adios2_ffs
-    )
+set(ADIOS2_LIB_NAMES
+   	adios2_core
+    	adios2_cxx11
+)
 endif()
 
 adios2LibCheck("${ADIOS2_LIB_NAMES}" TRUE)
@@ -118,7 +99,6 @@ adios2LibCheck("${ADIOS2_LIB_NAMES}" TRUE)
 # if all listed variables are TRUE
 find_package_handle_standard_args(ADIOS2 DEFAULT_MSG
   ADIOS2_LIBS ADIOS2_INCLUDE_DIR
-  )
+)
 
-mark_as_advanced(ADIOS2_INCLUDE_DIR ADIOS2_LIBS
-	)
+mark_as_advanced(ADIOS2_INCLUDE_DIR ADIOS2_LIBS)
