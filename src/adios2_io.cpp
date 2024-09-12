@@ -67,6 +67,13 @@ int main(int argc, char *argv[])
   auto lib = Omega_h::Library(&argc, &argv);
   auto world = lib.world();
 
+  if (lib.world()->size()>1)
+  {
+    if (!lib.world()->rank())
+      fprintf(stderr, "ADIOS2 file I/O with partitioned mesh is not supported yet\n");
+    exit(EXIT_FAILURE);
+  }
+
   Omega_h::CmdLine cmdline;
 
   cmdline.add_arg<std::string>("input.osh");

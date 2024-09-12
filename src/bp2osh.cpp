@@ -6,6 +6,13 @@
 
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
+  if (lib.world()->size()>1)
+  {
+    if (!lib.world()->rank())
+      fprintf(stderr, "ADIOS2 file I/O with partitioned mesh is not supported yet\n");
+    exit(EXIT_FAILURE);
+  }
+
   if( argc != 3) {
     fprintf(stderr, "Usage: %s inputMesh.bp outputMesh.osh\n", argv[0]);
     exit(EXIT_FAILURE);
