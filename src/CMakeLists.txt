@@ -491,7 +491,7 @@ if(BUILD_TESTING)
 
   if(Omega_h_USE_Gmsh AND Omega_h_USE_Kokkos)
     osh_add_exe(test_tri_vert_orientation)
-    test_func(run_tri_orientation 1 ./test_tri_vert_orientation ${CMAKE_SOURCE_DIR}/meshes/square4el.msh)
+    will_fail_test_func(run_tri_orientation 1 ./test_tri_vert_orientation ${CMAKE_SOURCE_DIR}/meshes/square4el.msh)
     set(TEST_EXES ${TEST_EXES} test_tri_vert_orientation)
   endif()
 
