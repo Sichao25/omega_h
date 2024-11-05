@@ -196,6 +196,9 @@ add_library(Omega_h::omega_h ALIAS omega_h)
 set_property(TARGET omega_h PROPERTY CXX_STANDARD "17")
 set_property(TARGET omega_h PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET omega_h PROPERTY CXX_EXTENSIONS OFF)
+if (Omega_h_USE_CUDA)
+  set_property(TARGET omega_h PROPERTY CUDA_ARCHITECTURES ${Omega_h_CUDA_ARCH})
+endif()
 
 bob_library_includes(omega_h)
 

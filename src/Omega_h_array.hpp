@@ -10,6 +10,7 @@
 #include <Omega_h_memory.hpp>
 #else
 #include <Omega_h_shared_alloc.hpp>
+#include <memory> //shared_ptr
 #include <string>
 #endif
 
@@ -136,7 +137,7 @@ class HostRead {
 #if defined(OMEGA_H_USE_KOKKOS)
   typename Kokkos::View<const T*, Kokkos::HostSpace> mirror_;
 #elif defined(OMEGA_H_USE_CUDA)
-  std::shared_ptr<T> mirror_;
+  std::shared_ptr<T[]> mirror_;
 #endif
  public:
   using value_type = T;
@@ -155,7 +156,7 @@ class HostWrite {
 #ifdef OMEGA_H_USE_KOKKOS
   typename View<T*>::HostMirror mirror_;
 #elif defined(OMEGA_H_USE_CUDA)
-  std::shared_ptr<T> mirror_;
+  std::shared_ptr<T[]> mirror_;
 #endif
  public:
   using value_type = T;
