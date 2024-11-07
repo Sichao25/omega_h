@@ -154,7 +154,9 @@ if (SIM_ACIS)
       SpaACIS)
 endif()
 
-set(SIM_CAD_LIB_NAMES SimDiscrete ${SIM_CAD_LIB_NAMES})
+if (Omega_h_USE_SimDiscrete)
+  set(SIM_CAD_LIB_NAMES SimDiscrete ${SIM_CAD_LIB_NAMES})
+endif()
 
 simLibCheck("${SIM_CAD_LIB_NAMES}" TRUE)
 
