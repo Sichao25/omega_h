@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.0...${CMAKE_VERSION})
 
-project(Omega_h VERSION 10.8.5 LANGUAGES CXX)
+project(Omega_h VERSION 10.8.6 LANGUAGES CXX)
 set(Omega_h_USE_STK_DEFAULT OFF)
 option(Omega_h_USE_STK "Whether to build the STK interface" ${Omega_h_USE_STK_DEFAULT})
 
@@ -29,6 +29,7 @@ bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
 bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
 bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
+bob_option(Omega_h_USE_SimDiscrete "Enable reading and creating Simmetrix Discrete models" OFF)
 bob_input(Omega_h_VALGRIND "" STRING "Valgrind plus arguments for testing")
 bob_option(Omega_h_EXAMPLES "Compile examples" OFF)
 
@@ -161,6 +162,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_EGADS
     Omega_h_USE_SEACASExodus
     Omega_h_USE_SimModSuite
+    Omega_h_USE_SimDiscrete
     Omega_h_USE_DOLFIN
     Omega_h_USE_dwarf
     Omega_h_CHECK_BOUNDS

@@ -74,6 +74,7 @@ jobs:
             -DBUILD_TESTING=on  \
             -DOmega_h_USE_MPI=on  \
             -DOmega_h_USE_SimModSuite=on \
+            -DOmega_h_USE_SimDiscrete=on \
             -DSIM_MPI=mpich4.1.1 \
             -DOmega_h_USE_Kokkos=on \
             -DOmega_h_CUDA_ARCH="80" \
