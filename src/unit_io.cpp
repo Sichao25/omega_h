@@ -701,6 +701,7 @@ $Elements
 $EndElements
 )GMSH";
 
+#ifdef OMEGA_H_USE_GMSH
 static const char* GMSH_3TETS_2SURFACES_2VOLUMES_MSH41[2] = {
     R"GMSH($MeshFormat
 4.1 0 8
@@ -938,6 +939,7 @@ $Elements
 5 1 2 4 6
 $EndElements
 )GMSH"};
+#endif //OMEGA_H_USE_GMSH
 
 static const char* GMSH_PHYSICAL_MSH41 = R"GMSH(
 $MeshFormat
