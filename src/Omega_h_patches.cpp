@@ -41,7 +41,7 @@ namespace {
   return filtered;
 }
 
-[[nodiscard]] Read<I8> patchSufficient(Graph patches, Int minPatchSize) {
+[[nodiscard]] Read<I8> patch_sufficient(Graph patches, Int minPatchSize) {
   const auto num_patches = patches.nnodes();
   auto offsets = patches.a2ab;
   Write<I8> done(num_patches);
@@ -72,7 +72,7 @@ namespace {
  * 4) For each sorted patch, remove the duplicate elements from the list.
 */
 //TODO use Omega_h_map and Omega_h_graph functions
-[[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Graph adjElms, Read<I8> patchDone) {
+[[nodiscard]] Graph expand_patches(Mesh& m, Graph patches, Graph adjElms, Read<I8> patchDone) {
   auto adjElms_offsets = adjElms.a2ab;
   auto adjElms_elms = adjElms.ab2b;
   const auto num_patches = patches.nnodes();
@@ -112,7 +112,7 @@ namespace {
 [[nodiscard]] Graph Mesh::get_vtx_patches(Int minPatchSize) {
   OMEGA_H_CHECK(minPatchSize > 0);
   auto patches = ask_up(VERT,dim());
-  auto patchDone = patchSufficient(patches, minPatchSize);
+  auto patchDone = patch_sufficient(patches, minPatchSize);
   if( get_min(patchDone) == 1 )
     return patches;
   auto adjElms = ask_dual();
@@ -120,8 +120,8 @@ namespace {
   //the minPatchSize is a conservative upper bound on the
   //iteration count
   for(Int iter = 0; iter < minPatchSize; iter++) {
-    patches = expandPatches(*this, patches, adjElms, patchDone);
-    patchDone = patchSufficient(patches, minPatchSize);
+    patches = expand_patches(*this, patches, adjElms, patchDone);
+    patchDone = patch_sufficient(patches, minPatchSize);
     if( get_min(patchDone) == 1 ) {
       return patches;
     }
