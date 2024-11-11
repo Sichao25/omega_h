@@ -58,6 +58,18 @@ namespace {
  * \param adjElms (in) second order element-to-element adjacencies
  *                     used for expansion
  * \return an expanded graph from key entities to elements
+ *
+ * The input graph of 'patches' that are not marked as done in
+ * 'patchDone' are expanded by the following process.
+ * 1) For each patch, loop over the elements and count the number of adjacent
+ *    elements in 'adjElms'. Note, this may count the same element multiple
+ *    times.
+ * 2) Create an array 'patchExpDup_elms' to store the elements in the expanded
+ *    patch (including duplicates) and fill it with the elements counted in
+ *    step 1.
+ * 3) For each expanded patch, sort the list of elements via the call to
+ *    'adj_segment_sort(...)'.
+ * 4) For each sorted patch, remove the duplicate elements from the list.
 */
 //TODO use Omega_h_map and Omega_h_graph functions
 [[nodiscard]] Graph expandPatches(Mesh& m, Graph patches, Graph adjElms, Read<I8> patchDone) {
