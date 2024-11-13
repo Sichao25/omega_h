@@ -255,7 +255,7 @@ endif()
 
 bob_export_target(omega_h)
 
-if(OMEGA_H_USE_CTAGS)
+if(Omega_h_USE_CTAGS)
   #from: https://stackoverflow.com/a/9842046
   set_source_files_properties(tags PROPERTIES GENERATED true)
   add_custom_target(tags
