@@ -71,6 +71,7 @@ set(Omega_h_SOURCES
   Omega_h_owners.cpp
   Omega_h_parser.cpp
   Omega_h_parser_graph.cpp
+  Omega_h_patches.cpp
   Omega_h_pool.cpp
   Omega_h_print.cpp
   Omega_h_profile.cpp
@@ -207,6 +208,9 @@ add_library(Omega_h::omega_h ALIAS omega_h)
 set_property(TARGET omega_h PROPERTY CXX_STANDARD "17")
 set_property(TARGET omega_h PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET omega_h PROPERTY CXX_EXTENSIONS OFF)
+if (Omega_h_USE_CUDA)
+  set_property(TARGET omega_h PROPERTY CUDA_ARCHITECTURES ${Omega_h_CUDA_ARCH})
+endif()
 
 bob_library_includes(omega_h)
 
@@ -273,7 +277,7 @@ endif()
 
 bob_export_target(omega_h)
 
-if(OMEGA_H_USE_CTAGS)
+if(Omega_h_USE_CTAGS)
   #from: https://stackoverflow.com/a/9842046
   set_source_files_properties(tags PROPERTIES GENERATED true)
   add_custom_target(tags
@@ -415,46 +419,55 @@ if(BUILD_TESTING)
   if (Omega_h_USE_Kokkos)
     osh_add_exe(bbox_reduce_test)
     osh_add_exe(initKokkosAndLib)
+    osh_add_exe(test_patches)
+    if(Omega_h_USE_MPI)
+      test_func(run_test_patches_par 4 ./test_patches)
+    else()
+      test_func(run_test_patches 1 ./test_patches)
+    endif()
   endif()
   set(TEST_EXES ${TEST_EXES} unit_math)
   test_basefunc(run_unit_math 1 ./unit_math)
 
   if(Omega_h_USE_SimModSuite)
     set(d3dMesh ${CMAKE_SOURCE_DIR}/meshes/d3d)
+    test_func(run_tri_convert_gold 1 ./meshsim2osh
+      ${d3dMesh}/d3d-coreMesh.sms
+      ${d3dMesh}/d3d.smd
+      ${d3dMesh}/d3d-coreMesh-gold.osh)
     test_func(run_tri_convert 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
       ${d3dMesh}/d3d-coreMesh.osh)
-    #osh_diff requires a 'global' tag, the osh_reorder utility creates the tag
-    # and was used to generate the tag on the known-to-be-correct ('gold') mesh
-    #see #40 for additional discussion
-    test_func(run_tri_convert_reorder 1 ./osh_reorder
-      ${d3dMesh}/d3d-coreMesh.osh
-      ${d3dMesh}/d3d-coreMesh-reordered.osh)
+    #ensure determinism (with same build) of meshsim2osh
     test_func(diff_tri_convert 1 ./oshdiff
       ${d3dMesh}/d3d-coreMesh-gold.osh
-      ${d3dMesh}/d3d-coreMesh-reordered.osh)
+      ${d3dMesh}/d3d-coreMesh.osh)
+    test_func(run_tri_convert_numbering_gold 1 ./meshsim2osh
+      ${d3dMesh}/d3d-coreMesh.sms
+      ${d3dMesh}/d3d.smd
+      ${d3dMesh}/d3d-coreMesh-numbered-gold.osh
+      -numbering ${d3dMesh}/d3d-coreMesh.nex)
     test_func(run_tri_convert_numbering 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
       ${d3dMesh}/d3d-coreMesh-numbered.osh
       -numbering ${d3dMesh}/d3d-coreMesh.nex)
-    test_func(run_tri_convert_numbering_reorder 1 ./osh_reorder
-      ${d3dMesh}/d3d-coreMesh-numbered.osh
-      ${d3dMesh}/d3d-coreMesh-numbered-reordered.osh)
     test_func(diff_tri_convert_numbering 1 ./oshdiff
       ${d3dMesh}/d3d-coreMesh-numbered-gold.osh
-      ${d3dMesh}/d3d-coreMesh-numbered-reordered.osh)
+      ${d3dMesh}/d3d-coreMesh-numbered.osh)
 
-    osh_add_exe(mixed_writeMesh)
-    set(TEST_EXES ${TEST_EXES} mixed_writeMesh)
-    test_func(run_mixed_writeMesh 1 ./mixed_writeMesh
-              ${CMAKE_SOURCE_DIR}/meshes)
+    if(Omega_h_USE_SimDiscrete)
+      osh_add_exe(mixed_writeMesh)
+      set(TEST_EXES ${TEST_EXES} mixed_writeMesh)
+      test_func(run_mixed_writeMesh 1 ./mixed_writeMesh
+                ${CMAKE_SOURCE_DIR}/meshes)
 
-    osh_add_exe(mixed_test)
-    set(TEST_EXES ${TEST_EXES} mixed_test)
-    test_func(run_mixed_test 1 ./mixed_test
-      ${CMAKE_SOURCE_DIR}/meshes)
+      osh_add_exe(mixed_test)
+      set(TEST_EXES ${TEST_EXES} mixed_test)
+      test_func(run_mixed_test 1 ./mixed_test
+        ${CMAKE_SOURCE_DIR}/meshes)
+    endif()
 
     osh_add_exe(periodic_test)
   endif()
@@ -508,6 +521,12 @@ if(BUILD_TESTING)
   test_func(run_corner_test 1 ./corner_test)
   osh_add_exe(coarsen_test)
   test_func(run_coarsen_test 1 ./coarsen_test)
+
+  if(Omega_h_USE_Gmsh AND Omega_h_USE_Kokkos)
+    osh_add_exe(test_tri_vert_orientation)
+    will_fail_test_func(run_tri_orientation 1 ./test_tri_vert_orientation ${CMAKE_SOURCE_DIR}/meshes/square4el.msh)
+    set(TEST_EXES ${TEST_EXES} test_tri_vert_orientation)
+  endif()
 
   osh_add_exe(2d_conserve_test)
   test_func(serial_2d_conserve 1 ./2d_conserve_test)
@@ -622,6 +641,7 @@ if(BUILD_TESTING)
       ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p_reduce.vtk
       ${CMAKE_SOURCE_DIR}/meshes/box3d_2p_adapt.vtk)
   endif()
+
   osh_add_exe(shape_test)
   test_basefunc(run_shape_test 1 ./shape_test)
 
