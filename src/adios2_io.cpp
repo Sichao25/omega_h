@@ -79,8 +79,8 @@ int main(int argc, char *argv[])
   cmdline.add_arg<std::string>("input.osh");
   cmdline.add_arg<std::string>("output.bp");
   if (!cmdline.parse_final(world, &argc, argv)) return -1;
-  auto inpath = cmdline.get<std::string>("input.osh");
-  auto outpath=cmdline.get<std::string>("output.bp");
+  Omega_h::filesystem::path inpath = cmdline.get<std::string>("input.osh");
+  Omega_h::filesystem::path outpath=cmdline.get<std::string>("output.bp");
 
   Omega_h::Mesh mesh(&lib);
   Omega_h::binary::read(inpath, world, &mesh);
@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
 
   try
   {
-    write_adios2(outpath, &mesh);
-    Omega_h::Mesh mesh2 = read_adios2(outpath, &lib);
+    write_adios2(outpath, &mesh, std::string("test"));
+    Omega_h::Mesh mesh2 = read_adios2(outpath, &lib, std::string("test"));
     Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
 
     cout<<"\n\n--- Mesh loaded back from \""<<outpath<<"\" ---\n";
