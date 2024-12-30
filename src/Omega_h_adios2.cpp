@@ -4,6 +4,7 @@
 #include "Omega_h_inertia.hpp" //<inertia::Rib>
 #include "Omega_h_timer.hpp"
 #include "Omega_h_tag.hpp"
+#include <map>
 
 using namespace std;
 
@@ -389,7 +390,7 @@ void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string 
   }
 }
 
-void read_sets(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
+void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
   std::string name = pref+"gclas_size";
   int32_t n;
@@ -461,10 +462,35 @@ void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::strin
   }
 }
 
-void write_adios2(filesystem::path const& path, Mesh *mesh, std::string pref)
+void write_adios2(adios2::IO &io, adios2::Engine & writer,
+                  Mesh* mesh, std::string pref)
 {
   comm_size = mesh->comm()->size();
   rank = mesh->comm()->rank();
+
+  write_meta(io, writer, mesh, pref);
+  int32_t nverts = mesh->nverts();
+  std::string name=pref+"nverts";
+  write_value(io, writer, nverts, name);
+
+  for (int32_t d = 1; d <= mesh->dim(); ++d)
+    write_down(io, writer, mesh, d, pref);
+
+  for (Int d = 0; d <= mesh->dim(); ++d)
+  {
+    write_tags(io, writer, mesh, d, pref);
+    write_pbdry(io, writer, mesh, d, pref);
+  }
+
+  write_sets(io, writer, mesh, pref);
+  write_parents(io, writer, mesh, pref);
+}
+
+void write_adios2(filesystem::path const& path, 
+		  std::map<Mesh*, std::string>& mesh_map)
+{
+  std::map<Mesh*, std::string>::iterator it=mesh_map.begin();
+  Mesh* mesh=it->first;
 
   if (path.extension().string() != ".bp" && can_print(mesh)) {
     std::cout
@@ -475,30 +501,22 @@ void write_adios2(filesystem::path const& path, Mesh *mesh, std::string pref)
 
   adios2::ADIOS adios(mesh->comm()->get_impl());
   adios2::IO io = adios.DeclareIO("mesh-writer");
-
   std::string filename=path.c_str();
 
   adios2::Engine writer = io.Open(filename, adios2::Mode::Write);
   writer.BeginStep();
-  write_meta(io, writer, mesh, pref);
-  int32_t nverts = mesh->nverts();
-  std::string name=pref+"nverts";
-  write_value(io, writer, nverts, name);
-
-  for (int32_t d = 1; d <= mesh->dim(); ++d)
-    write_down(io, writer, mesh, d, pref);
-
-  for (Int d = 0; d <= mesh->dim(); ++d) 
-  {
-    write_tags(io, writer, mesh, d, pref);
-    write_pbdry(io, writer, mesh, d, pref);
-  }
-
-  write_sets(io, writer, mesh, pref);
-  write_parents(io, writer, mesh, pref);
-
+  for (; it!=mesh_map.end(); ++it)
+    write_adios2(io, writer, it->first, it->second);
   writer.EndStep();
   writer.Close();
+}
+
+
+void write_adios2(filesystem::path const& path, Mesh* mesh, std::string pref)
+{
+  std::map<Mesh*, std::string> mesh_map;
+  mesh_map[mesh] = pref;
+  write_adios2(path, mesh_map);
 }
 
 Mesh read_adios2(filesystem::path const& path, Library* lib, std::string pref)
