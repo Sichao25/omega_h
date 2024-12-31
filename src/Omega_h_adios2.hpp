@@ -18,6 +18,8 @@ template <typename T>
 void read_value(adios2::IO &, adios2::Engine &reader,
         T *val, std::string &name, bool global=false);
 
+void write_adios2(filesystem::path const& path,
+                  std::map<Mesh*, std::string>& mesh_map);
 void write_adios2(filesystem::path const& path, Mesh *mesh, std::string pref="");
 
 Mesh read_adios2(filesystem::path const& path, Library* lib, std::string pref="");

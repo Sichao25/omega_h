@@ -76,39 +76,58 @@ int main(int argc, char *argv[])
 
   Omega_h::CmdLine cmdline;
 
-  cmdline.add_arg<std::string>("input.osh");
+  cmdline.add_arg<std::string>("input1.osh");
+  cmdline.add_arg<std::string>("input2.osh");
   cmdline.add_arg<std::string>("output.bp");
   if (!cmdline.parse_final(world, &argc, argv)) return -1;
-  Omega_h::filesystem::path inpath = cmdline.get<std::string>("input.osh");
+  Omega_h::filesystem::path inpath1 = cmdline.get<std::string>("input1.osh");
+  Omega_h::filesystem::path inpath2 = cmdline.get<std::string>("input2.osh");
   Omega_h::filesystem::path outpath=cmdline.get<std::string>("output.bp");
 
-  Omega_h::Mesh mesh(&lib);
-  Omega_h::binary::read(inpath, world, &mesh);
-  cout<<"\n--- Mesh loaded from \""<<inpath<<"\" ---\n";
-  print_info(&lib, mesh);
+  Omega_h::Mesh mesh1(&lib);
+  Omega_h::binary::read(inpath1, world, &mesh1);
+  Omega_h::Mesh mesh2(&lib);
+  Omega_h::binary::read(inpath2, world, &mesh2);
+
+  cout<<"\n--- Mesh loaded from \""<<inpath1<<"\" ---\n";
+  print_info(&lib, mesh1);
+  cout<<"\n--- Mesh loaded from \""<<inpath2<<"\" ---\n";
+  print_info(&lib, mesh2);
 
 //  Omega_h::Mesh mesh = build_box(world, OMEGA_H_SIMPLEX, 1., 1., 0., 2, 2, 0);
-  Omega_h::binary::write("omegah.osh", &mesh);
-  Omega_h::vtk::write_parallel("omegah.vtk", &mesh);
+  Omega_h::binary::write("omegah1.osh", &mesh1);
+  Omega_h::binary::write("omegah2.osh", &mesh2);
+ // Omega_h::vtk::write_parallel("omegah.vtk", &mesh);
 
   try
   {
-    write_adios2(outpath, &mesh, std::string("test"));
-    Omega_h::Mesh mesh2 = read_adios2(outpath, &lib, std::string("test"));
-    Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
+    map<Mesh*, std::string> mmap;
+    mmap[&mesh1]="m1";
+    mmap[&mesh2]="m2";
+    write_adios2(outpath, mmap);
+    Omega_h::Mesh mesh3 = read_adios2(outpath, &lib, std::string("m1"));
+    Omega_h::Mesh mesh4 = read_adios2(outpath, &lib, std::string("m2"));
+    //Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
 
-    cout<<"\n\n--- Mesh loaded back from \""<<outpath<<"\" ---\n";
-    print_info(&lib, mesh2);
+    cout<<"\n\n--- Two meshes loaded back from \""<<outpath<<"\" ---\n";
+    print_info(&lib, mesh3);
+    print_info(&lib, mesh4);
 
     double tol = 1e-6, floor = 0.0;
     bool allow_superset = false;
     auto opts = MeshCompareOpts::init(
-                &mesh, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
-    auto res = compare_meshes(&mesh, &mesh2, opts, true);
+                &mesh1, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
+    auto res = compare_meshes(&mesh1, &mesh3, opts, true);
     if (res == OMEGA_H_SAME || (allow_superset && res == OMEGA_H_MORE))
     {
-      cout << "\nSUCCESS! Two meshes (.osh and .bp) are the same\n";
-      return 0;
+      opts = MeshCompareOpts::init(
+                &mesh2, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
+      res = compare_meshes(&mesh2, &mesh4, opts, true);
+      if (res == OMEGA_H_SAME || (allow_superset && res == OMEGA_H_MORE))
+      {  
+        cout << "\nSUCCESS! Meshes loaded from .osh and .bp are the same\n";
+        return 0;
+      }
     }
     cout << "\nFAIL! Two meshes (.osh and .bp) are NOT the same\n";
      return 2;

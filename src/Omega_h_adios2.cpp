@@ -462,7 +462,7 @@ void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::strin
   }
 }
 
-void write_adios2(adios2::IO &io, adios2::Engine & writer,
+void _write_adios2(adios2::IO &io, adios2::Engine & writer,
                   Mesh* mesh, std::string pref)
 {
   comm_size = mesh->comm()->size();
@@ -506,7 +506,7 @@ void write_adios2(filesystem::path const& path,
   adios2::Engine writer = io.Open(filename, adios2::Mode::Write);
   writer.BeginStep();
   for (; it!=mesh_map.end(); ++it)
-    write_adios2(io, writer, it->first, it->second);
+    _write_adios2(io, writer, it->first, it->second);
   writer.EndStep();
   writer.Close();
 }
