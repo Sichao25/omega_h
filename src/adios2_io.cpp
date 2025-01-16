@@ -2,9 +2,6 @@
  *
  * .cpp : adios2 low-level API example to write and read arrays and string
  *
- *  Created on: Aug 25, 2024
- *  Author: Seegyoung Seol seols@rpi.edu
- *
  */
 #include <Omega_h_timer.hpp>
 #include <Omega_h_file.hpp>
@@ -28,9 +25,6 @@
 #if ADIOS2_USE_MPI
 #include <mpi.h>
 #endif
-
-using namespace Omega_h;
-using namespace std;
 
 // printTagInfo and getNumEq copied from describe.cpp
 template <typename T>
@@ -57,7 +51,7 @@ int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
     return Omega_h::get_sum(each_eq_to);
 }
 
-void print_info(Library* lib, Omega_h::Mesh mesh);
+void print_info(Omega_h::Library* lib, Omega_h::Mesh mesh);
 
 // to check the content of .bp, run /lore/seols/romulus-install/bin/bpls
 // ex. ./bpls mesh.bp
@@ -89,19 +83,18 @@ int main(int argc, char *argv[])
   Omega_h::Mesh mesh2(&lib);
   Omega_h::binary::read(inpath2, world, &mesh2);
 
-  cout<<"\n--- Mesh loaded from \""<<inpath1<<"\" ---\n";
+  std::cout<<"\n--- Mesh loaded from \""<<inpath1<<"\" ---\n";
   print_info(&lib, mesh1);
-  cout<<"\n--- Mesh loaded from \""<<inpath2<<"\" ---\n";
+  std::cout<<"\n--- Mesh loaded from \""<<inpath2<<"\" ---\n";
   print_info(&lib, mesh2);
 
-//  Omega_h::Mesh mesh = build_box(world, OMEGA_H_SIMPLEX, 1., 1., 0., 2, 2, 0);
   Omega_h::binary::write("omegah1.osh", &mesh1);
   Omega_h::binary::write("omegah2.osh", &mesh2);
  // Omega_h::vtk::write_parallel("omegah.vtk", &mesh);
 
   try
   {
-    map<Mesh*, std::string> mmap;
+    std::map<Omega_h::Mesh*, std::string> mmap;
     mmap[&mesh1]="m1";
     mmap[&mesh2]="m2";
     write_adios2(outpath, mmap);
@@ -109,27 +102,27 @@ int main(int argc, char *argv[])
     Omega_h::Mesh mesh4 = read_adios2(outpath, &lib, std::string("m2"));
     //Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
 
-    cout<<"\n\n--- Two meshes loaded back from \""<<outpath<<"\" ---\n";
+    std::cout<<"\n\n--- Two meshes loaded back from \""<<outpath<<"\" ---\n";
     print_info(&lib, mesh3);
     print_info(&lib, mesh4);
 
     double tol = 1e-6, floor = 0.0;
     bool allow_superset = false;
-    auto opts = MeshCompareOpts::init(
-                &mesh1, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
+    auto opts = Omega_h::MeshCompareOpts::init(
+                &mesh1, Omega_h::VarCompareOpts{Omega_h::VarCompareOpts::RELATIVE, tol, floor});
     auto res = compare_meshes(&mesh1, &mesh3, opts, true);
     if (res == OMEGA_H_SAME || (allow_superset && res == OMEGA_H_MORE))
     {
-      opts = MeshCompareOpts::init(
-                &mesh2, VarCompareOpts{VarCompareOpts::RELATIVE, tol, floor});
+      opts = Omega_h::MeshCompareOpts::init(
+                &mesh2, Omega_h::VarCompareOpts{Omega_h::VarCompareOpts::RELATIVE, tol, floor});
       res = compare_meshes(&mesh2, &mesh4, opts, true);
       if (res == OMEGA_H_SAME || (allow_superset && res == OMEGA_H_MORE))
       {  
-        cout << "\nSUCCESS! Meshes loaded from .osh and .bp are the same\n";
+	std::cout << "\nSUCCESS! Meshes loaded from .osh and .bp are the same\n";
         return 0;
       }
     }
-    cout << "\nFAIL! Two meshes (.osh and .bp) are NOT the same\n";
+    std::cout << "\nFAIL! Two meshes (.osh and .bp) are NOT the same\n";
      return 2;
    }
    catch (std::exception &e)
@@ -143,11 +136,11 @@ int main(int argc, char *argv[])
 }
 
 // serial only at the moment
-void print_info(Library* lib, Omega_h::Mesh mesh)
+void print_info(Omega_h::Library* lib, Omega_h::Mesh mesh)
 {
   auto rank = lib->world()->rank();
   
-  ostringstream oss;
+  std::ostringstream oss;
   // always print two places to the right of the decimal
   // for floating point types (i.e., imbalance)
   oss.precision(2);

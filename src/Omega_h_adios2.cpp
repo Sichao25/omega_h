@@ -13,7 +13,7 @@ namespace Omega_h {
 long unsigned int comm_size, rank;
 
 template <typename T>
-void write_value(adios2::IO &io, adios2::Engine &writer, 
+static void write_value(adios2::IO &io, adios2::Engine &writer, 
 		T val, std::string &name, bool global)
 {
   if (global)
@@ -35,7 +35,7 @@ void write_value(adios2::IO &io, adios2::Engine &writer,
 }
 
 template <typename T>
-void read_value(adios2::IO &io, adios2::Engine &reader, 
+static void read_value(adios2::IO &io, adios2::Engine &reader, 
 	T *val, std::string &name, bool global)
 {
   adios2::Variable<T> bpData = io.InquireVariable<T>(name);
@@ -55,7 +55,7 @@ void read_value(adios2::IO &io, adios2::Engine &reader,
 }
 
 template <typename T>
-void write_array(adios2::IO &io, adios2::Engine &writer, Read<T> array, 
+static void write_array(adios2::IO &io, adios2::Engine &writer, Read<T> array, 
 		std::string &name)
 {
 //  std::cout<<__func__<<" "<<name<<": value ";
@@ -81,7 +81,7 @@ void write_array(adios2::IO &io, adios2::Engine &writer, Read<T> array,
 }
 
 template <typename T>
-void read_array(adios2::IO &io, adios2::Engine &reader,
+static void read_array(adios2::IO &io, adios2::Engine &reader,
                Read<T> &array, std::string &name)
 {
   // usage: Read<int32_t> array;
@@ -333,7 +333,7 @@ void read_tags(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::s
   }
 }
 
-void write_pbdry(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
+void write_part_boundary(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
   if (mesh->comm()->size() == 1) return; 
   auto owners = mesh->ask_owners(d);
@@ -343,7 +343,7 @@ void write_pbdry(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std:
   write_array(io, writer, owners.idxs, name);
 }
 
-void read_pbdry(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
+void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
   if (mesh->comm()->size() == 1) return;
   Remotes owners;
@@ -479,7 +479,7 @@ void _write_adios2(adios2::IO &io, adios2::Engine & writer,
   for (Int d = 0; d <= mesh->dim(); ++d)
   {
     write_tags(io, writer, mesh, d, pref);
-    write_pbdry(io, writer, mesh, d, pref);
+    write_part_boundary(io, writer, mesh, d, pref);
   }
 
   write_sets(io, writer, mesh, pref);
@@ -548,7 +548,7 @@ Mesh read_adios2(filesystem::path const& path, Library* lib, std::string pref)
   for (Int d = 0; d <= mesh.dim(); ++d)
   {
     read_tags(io, reader, &mesh, d, pref);
-    read_pbdry(io, reader, &mesh, d, pref);
+    read_part_boundary(io, reader, &mesh, d, pref);
   }
 
   read_sets(io, reader, &mesh, pref);

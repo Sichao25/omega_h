@@ -11,11 +11,11 @@
 namespace Omega_h {
 
 template <typename T>
-void write_value(adios2::IO &, adios2::Engine &writer,
+static void write_value(adios2::IO &, adios2::Engine &writer,
         T val, std::string &name, bool global=false);
 
 template <typename T>
-void read_value(adios2::IO &, adios2::Engine &reader,
+static void read_value(adios2::IO &, adios2::Engine &reader,
         T *val, std::string &name, bool global=false);
 
 void write_adios2(filesystem::path const& path,

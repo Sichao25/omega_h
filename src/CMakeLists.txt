@@ -657,6 +657,7 @@ if(BUILD_TESTING)
     osh_add_exe(adios2_io)
     test_basefunc(adios2_io 1 ./adios2_io
 	  ${CMAKE_SOURCE_DIR}/meshes/unitbox_cutTriCube_1k.osh
+	  ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh
 	  output.bp)
   endif()
 endif()
