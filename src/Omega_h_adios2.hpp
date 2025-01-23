@@ -9,15 +9,6 @@
 #include "Omega_h_library.hpp"
 
 namespace Omega_h {
-
-template <typename T>
-static void write_value(adios2::IO &, adios2::Engine &writer,
-        T val, std::string &name, bool global=false);
-
-template <typename T>
-static void read_value(adios2::IO &, adios2::Engine &reader,
-        T *val, std::string &name, bool global=false);
-
 void write_adios2(filesystem::path const& path,
                   std::map<Mesh*, std::string>& mesh_map);
 void write_adios2(filesystem::path const& path, Mesh *mesh, std::string pref="");

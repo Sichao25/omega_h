@@ -14,7 +14,7 @@ long unsigned int comm_size, rank;
 
 template <typename T>
 static void write_value(adios2::IO &io, adios2::Engine &writer, 
-		T val, std::string &name, bool global)
+		T val, std::string &name, bool global=false)
 {
   if (global)
   {
@@ -36,7 +36,7 @@ static void write_value(adios2::IO &io, adios2::Engine &writer,
 
 template <typename T>
 static void read_value(adios2::IO &io, adios2::Engine &reader, 
-	T *val, std::string &name, bool global)
+	T *val, std::string &name, bool global=false)
 {
   adios2::Variable<T> bpData = io.InquireVariable<T>(name);
   if (bpData) // found
