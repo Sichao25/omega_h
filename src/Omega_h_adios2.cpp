@@ -116,7 +116,7 @@ static void read_array(adios2::IO &io, adios2::Engine &reader,
 }
 
 
-void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
+static void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
   auto down = mesh->ask_down(d, d - 1);
   std::string name = pref+"down.ab2b_" + std::to_string(d);
@@ -127,7 +127,7 @@ void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::
     }
 }
 
-void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
+static void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
   std::string name = pref+"down.ab2b_" + std::to_string(d);
   Adj down;
@@ -139,7 +139,7 @@ void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::s
   mesh->set_ents(d, down);
 }
 
-void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
+static void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
   std::string name=pref+"family";
   write_value(io, writer, (int32_t)mesh->family(), name);
@@ -165,7 +165,7 @@ void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string 
 }
 
 // assumption: version>=7
-void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
+static void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
   int32_t family, dim, commsize, commrank, parting, nghost_layers, have_hints, naxes;
   std::string name=pref+"family";
@@ -210,7 +210,7 @@ void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string p
   }
 }
 
-void write_tag(adios2::IO &io, adios2::Engine &writer, 
+static void write_tag(adios2::IO &io, adios2::Engine &writer, 
 		TagBase const* tag, string &pre_name)
 {
   std::string name = pre_name+"name";
@@ -245,7 +245,7 @@ void write_tag(adios2::IO &io, adios2::Engine &writer,
   apply_to_omega_h_types(tag->type(), std::move(f));
 }
 
-void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, 
+static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, 
 	      int32_t d, string &pre_name)
 {
   std::string name = pre_name+"name";
@@ -287,7 +287,7 @@ void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
 
 }
 
-void write_tags(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
+static void write_tags(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
   std::string name = pref+"ntags_" + to_string(d);
   write_value(io, writer, mesh->ntags(d), name, true);
@@ -312,7 +312,7 @@ void write_tags(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::
   }
 }
 
-void read_tags(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
+static void read_tags(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
   int32_t ntags;
   std::string name = pref+"ntags_" + to_string(d);
@@ -333,7 +333,7 @@ void read_tags(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::s
   }
 }
 
-void write_part_boundary(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
+static void write_part_boundary(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
   if (mesh->comm()->size() == 1) return; 
   auto owners = mesh->ask_owners(d);
@@ -343,7 +343,7 @@ void write_part_boundary(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int
   write_array(io, writer, owners.idxs, name);
 }
 
-void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
+static void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
   if (mesh->comm()->size() == 1) return;
   Remotes owners;
@@ -354,7 +354,7 @@ void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int 
   mesh->set_owners(d, owners);
 }
 
-void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
+static void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
   std::string name = pref+"gclas_size";
   write_value(io, writer, (int32_t)mesh->class_sets.size(), name, true);
@@ -390,7 +390,7 @@ void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string 
   }
 }
 
-void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::string pref)
+static void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
   std::string name = pref+"gclas_size";
   int32_t n;
@@ -425,7 +425,7 @@ void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::string 
   }
 }
 
-void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
+static void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
   int32_t has_parents = mesh->has_any_parents();
   std::string name = pref+"has_parents";
@@ -443,7 +443,7 @@ void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::stri
   }
 }
 
-void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
+static void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
   int32_t has_parents;
   std::string name = pref+"has_parents";
