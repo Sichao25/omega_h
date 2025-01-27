@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
     std::map<Omega_h::Mesh*, std::string> mmap;
     mmap[&mesh1]="m1";
     mmap[&mesh2]="m2";
-    write_adios2(outpath, mmap);
-    Omega_h::Mesh mesh3 = read_adios2(outpath, &lib, std::string("m1"));
-    Omega_h::Mesh mesh4 = read_adios2(outpath, &lib, std::string("m2"));
+    Omega_h::adios::write(outpath, mmap);
+    Omega_h::Mesh mesh3 = Omega_h::adios::read(outpath, &lib, std::string("m1"));
+    Omega_h::Mesh mesh4 = Omega_h::adios::read(outpath, &lib, std::string("m2"));
 
     double tol = 1e-6, floor = 0.0;
     bool allow_superset = false;

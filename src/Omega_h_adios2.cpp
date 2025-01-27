@@ -10,6 +10,8 @@ using namespace std;
 
 namespace Omega_h {
 
+namespace adios {
+
 long unsigned int comm_size, rank;
 
 template <typename T>
@@ -462,7 +464,7 @@ static void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std
   }
 }
 
-void _write_adios2(adios2::IO &io, adios2::Engine & writer,
+void write_mesh(adios2::IO &io, adios2::Engine & writer,
                   Mesh* mesh, std::string pref)
 {
   comm_size = mesh->comm()->size();
@@ -486,7 +488,7 @@ void _write_adios2(adios2::IO &io, adios2::Engine & writer,
   write_parents(io, writer, mesh, pref);
 }
 
-void write_adios2(filesystem::path const& path, 
+void write(filesystem::path const& path, 
 		  std::map<Mesh*, std::string>& mesh_map)
 {
   std::map<Mesh*, std::string>::iterator it=mesh_map.begin();
@@ -506,20 +508,20 @@ void write_adios2(filesystem::path const& path,
   adios2::Engine writer = io.Open(filename, adios2::Mode::Write);
   writer.BeginStep();
   for (; it!=mesh_map.end(); ++it)
-    _write_adios2(io, writer, it->first, it->second);
+    write_mesh(io, writer, it->first, it->second);
   writer.EndStep();
   writer.Close();
 }
 
 
-void write_adios2(filesystem::path const& path, Mesh* mesh, std::string pref)
+void write(filesystem::path const& path, Mesh* mesh, std::string pref)
 {
   std::map<Mesh*, std::string> mesh_map;
   mesh_map[mesh] = pref;
-  write_adios2(path, mesh_map);
+  write(path, mesh_map);
 }
 
-Mesh read_adios2(filesystem::path const& path, Library* lib, std::string pref)
+Mesh read(filesystem::path const& path, Library* lib, std::string pref)
 {
   comm_size = lib->world()->size();
   rank = lib->world()->rank();
@@ -560,4 +562,5 @@ Mesh read_adios2(filesystem::path const& path, Library* lib, std::string pref)
   return mesh;
 }
 
+} // end namespace adios
 }  // end namespace Omega_h

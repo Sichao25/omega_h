@@ -21,6 +21,6 @@ int main(int argc, char** argv)
   OMEGA_H_CHECK(argc == 3);
   Omega_h::Mesh mesh(&lib);
   Omega_h::binary::read(argv[1], lib.world(), &mesh);
-  Omega_h::write_adios2(argv[2], &mesh);
+  Omega_h::adios::write(argv[2], &mesh);
   return 0;
 }
