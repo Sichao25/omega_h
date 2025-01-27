@@ -2,9 +2,9 @@
 #define OMEGA_H_ADIOS2_HPP
 #include <adios2.h>
 #include <Omega_h_mesh.hpp>
-#if ADIOS2_USE_MPI
-#include <mpi.h>
-#endif
+//#if ADIOS2_USE_MPI
+//#include <mpi.h>
+//#endif
 #include "Omega_h_filesystem.hpp" // filesystem
 #include "Omega_h_library.hpp"
 

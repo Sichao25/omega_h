@@ -22,9 +22,7 @@
 #include <iomanip>
 
 #include <adios2.h>
-#if ADIOS2_USE_MPI
 #include <mpi.h>
-#endif
 
 // printTagInfo and getNumEq copied from describe.cpp
 template <typename T>
@@ -51,11 +49,8 @@ int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
     return Omega_h::get_sum(each_eq_to);
 }
 
-void print_info(Omega_h::Library* lib, Omega_h::Mesh mesh);
-
 // to check the content of .bp, run /lore/seols/romulus-install/bin/bpls
 // ex. ./bpls mesh.bp
-
 int main(int argc, char *argv[])
 {
   auto lib = Omega_h::Library(&argc, &argv);
@@ -83,14 +78,8 @@ int main(int argc, char *argv[])
   Omega_h::Mesh mesh2(&lib);
   Omega_h::binary::read(inpath2, world, &mesh2);
 
-  std::cout<<"\n--- Mesh loaded from \""<<inpath1<<"\" ---\n";
-  print_info(&lib, mesh1);
-  std::cout<<"\n--- Mesh loaded from \""<<inpath2<<"\" ---\n";
-  print_info(&lib, mesh2);
-
   Omega_h::binary::write("omegah1.osh", &mesh1);
   Omega_h::binary::write("omegah2.osh", &mesh2);
- // Omega_h::vtk::write_parallel("omegah.vtk", &mesh);
 
   try
   {
@@ -100,11 +89,6 @@ int main(int argc, char *argv[])
     write_adios2(outpath, mmap);
     Omega_h::Mesh mesh3 = read_adios2(outpath, &lib, std::string("m1"));
     Omega_h::Mesh mesh4 = read_adios2(outpath, &lib, std::string("m2"));
-    //Omega_h::vtk::write_parallel("adios2.vtk", &mesh2);
-
-    std::cout<<"\n\n--- Two meshes loaded back from \""<<outpath<<"\" ---\n";
-    print_info(&lib, mesh3);
-    print_info(&lib, mesh4);
 
     double tol = 1e-6, floor = 0.0;
     bool allow_superset = false;
@@ -128,48 +112,7 @@ int main(int argc, char *argv[])
    catch (std::exception &e)
    {
      std::cout << "\nERROR: ADIOS2 exception: " << e.what() << "\n";
-#if ADIOS2_USE_MPI
      MPI_Abort(lib.world()->get_impl(), -1);
-#endif
    }
     return 0;
-}
-
-// serial only at the moment
-void print_info(Omega_h::Library* lib, Omega_h::Mesh mesh)
-{
-  auto rank = lib->world()->rank();
-  
-  std::ostringstream oss;
-  // always print two places to the right of the decimal
-  // for floating point types (i.e., imbalance)
-  oss.precision(2);
-  oss << std::fixed;
-
-  if (!rank) 
-  {
-    oss << "\nEntity Type: " << Omega_h::topological_singular_name(mesh.family(), mesh.dim()) << "\n";
-
-    oss << "\nEntity Count and Imbalance: (Dim, #Global, #Local, Max/Ave Imbalance)\n";
-    for (int dim=0; dim <= mesh.dim(); dim++)
-      oss << "(" << dim << ", " 
-  	  << mesh.nglobal_ents(dim) << ", " 
-    	  <<mesh.nents(dim)<< ", " 
-	  << mesh.imbalance(dim) << ")\n";
-
-    oss << "\nTag by Dimension: (Name, Dim, Type, #Components, Min/Max Value)\n";
-    for (int dim=0; dim <= mesh.dim(); dim++)
-      for (int tag=0; tag < mesh.ntags(dim); tag++) {
-        auto tagbase = mesh.get_tag(dim, tag);
-        if (tagbase->type() == OMEGA_H_I8)
-          printTagInfo<Omega_h::I8>(mesh, oss, dim, tag, "I8");
-        if (tagbase->type() == OMEGA_H_I32)
-          printTagInfo<Omega_h::I32>(mesh, oss, dim, tag, "I32");
-        if (tagbase->type() == OMEGA_H_I64)
-     	  printTagInfo<Omega_h::I64>(mesh, oss, dim, tag, "I64");
-        if (tagbase->type() == OMEGA_H_F64)
-          printTagInfo<Omega_h::Real>(mesh, oss, dim, tag, "F64");
-      }
-    std::cout << oss.str();
-  }
 }
