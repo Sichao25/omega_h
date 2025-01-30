@@ -24,32 +24,7 @@
 #include <adios2.h>
 #include <mpi.h>
 
-// printTagInfo and getNumEq copied from describe.cpp
-template <typename T>
-void printTagInfo(Omega_h::Mesh mesh, std::ostringstream& oss, int dim, int tag, std::string type) {
-    auto tagbase = mesh.get_tag(dim, tag);
-    auto array = Omega_h::as<T>(tagbase)->array();
-
-    Omega_h::Real min = get_min(array);
-    Omega_h::Real max = get_max(array);
-
-    oss << std::setw(18) << std::left << tagbase->name().c_str()
-        << std::setw(5) << std::left << dim
-        << std::setw(7) << std::left << type
-        << std::setw(5) << std::left << tagbase->ncomps()
-        << std::setw(10) << std::left << min
-        << std::setw(10) << std::left << max
-        << "\n";
-}
-
-template <typename T>
-int getNumEq(Omega_h::Mesh mesh, std::string tagname, int dim, int value) {
-    auto array = mesh.get_array<T>(dim, tagname);
-    auto each_eq_to = Omega_h::each_eq_to<T>(array, value);
-    return Omega_h::get_sum(each_eq_to);
-}
-
-// to check the content of .bp, run /lore/seols/romulus-install/bin/bpls
+// to check the content of .bp, run bin/bpls
 // ex. ./bpls mesh.bp
 int main(int argc, char *argv[])
 {
