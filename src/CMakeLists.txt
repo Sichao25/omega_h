@@ -238,7 +238,7 @@ if(Omega_h_USE_ADIOS2)
     target_link_libraries(omega_h PUBLIC "${ADIOS2_LIBRARIES}")
     target_link_libraries(omega_h PUBLIC MPI::MPI_CXX)
   else()
-    message("set Omega_h_USE_MPI to use ADIOS2")
+    message(FATAL_ERROR, "set Omega_h_USE_MPI to use ADIOS2")
   endif()
 endif()
 
