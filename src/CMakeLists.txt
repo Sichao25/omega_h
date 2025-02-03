@@ -171,6 +171,12 @@ if(Omega_h_USE_SimModSuite)
     "${CMAKE_CURRENT_BINARY_DIR}/Omega_h_simConfig.h")
 endif()
 
+message(STATUS "Omega_h_USE_ADIOS2: ${Omega_h_USE_ADIOS2}")
+if(Omega_h_USE_ADIOS2)
+  list(APPEND Omega_h_SOURCES Omega_h_adios2.cpp)
+  find_package(ADIOS2 REQUIRED)
+endif()
+
 if(Omega_h_USE_SEACASExodus)
   set(Omega_h_SOURCES ${Omega_h_SOURCES} Omega_h_exodus.cpp)
 endif()
@@ -226,6 +232,15 @@ if(Omega_h_USE_SimModSuite)
   target_link_libraries(omega_h PUBLIC "${SIMMODSUITE_LIBS}")
 endif()
 
+if(Omega_h_USE_ADIOS2)
+  if (Omega_h_USE_MPI)
+    target_include_directories(omega_h PRIVATE "${ADIOS2_INCLUDE_DIRS}")
+    target_link_libraries(omega_h PUBLIC "${ADIOS2_LIBRARIES}")
+    target_link_libraries(omega_h PUBLIC MPI::MPI_CXX)
+  else()
+    message(FATAL_ERROR, "set Omega_h_USE_MPI to use ADIOS2")
+  endif()
+endif()
 
 bob_link_dependency(omega_h PUBLIC SEACASExodus)
 
@@ -629,6 +644,16 @@ if(BUILD_TESTING)
   else()
     test_func(describe_serial 1 ./describe ${CMAKE_SOURCE_DIR}/meshes/box_3d.osh)
   endif()
+
+  if (Omega_h_USE_ADIOS2)
+    osh_add_util(bp2osh)
+    osh_add_util(osh2bp)
+    osh_add_exe(adios2_io)
+    test_basefunc(adios2_io 1 ./adios2_io
+	  ${CMAKE_SOURCE_DIR}/meshes/unitbox_cutTriCube_1k.osh
+	  ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh
+	  output.bp)
+  endif()
 endif()
 
 bob_config_header("${CMAKE_CURRENT_BINARY_DIR}/Omega_h_config.h")
@@ -742,6 +767,10 @@ if(Omega_h_USE_Kokkos)
   list(APPEND Omega_h_HEADERS Omega_h_array_kokkos.hpp)
 else()
   list(APPEND Omega_h_HEADERS Omega_h_array_default.hpp)
+endif()
+
+if(Omega_h_USE_ADIOS2)
+  list(APPEND Omega_h_HEADERS Omega_h_adios2.hpp)
 endif()
 
 install(FILES ${Omega_h_HEADERS} DESTINATION include)
