@@ -613,6 +613,47 @@ Mesh read_sliced(filesystem::path const&, CommPtr, bool, int, int) {
 }
 #endif
 
+bool isExcludedField(std::string fieldName) {
+  std::array<std::string, 2> excludedFields = {"metric", "coordinates"};
+  for( auto& name : excludedFields )
+    if(fieldName == name)
+      return true;
+  return false;
+}
+
+void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
+    std::string const& prefix, std::string const& postfix, bool verbose) {
+  int num_nodal_vars = 0;
+  for (int i = 0; i<mesh->ntags(VERT); i++) {
+    if(mesh->get_tag(VERT,i)->type() == OMEGA_H_F64) {
+      if( ! isExcludedField(mesh->get_tag(VERT,i)->name()) )
+        num_nodal_vars++;
+    }
+  }
+  // Define nodal variable names in Exodus
+  if (num_nodal_vars > 0) {
+    if(verbose)
+      std::cout << "P" << mesh->comm()->rank() << ": " << num_nodal_vars << " nodal variables\n";
+    ex_put_variable_param(exodus_file, EX_NODAL, num_nodal_vars);
+
+    for (int i = 0; i<mesh->ntags(VERT); i++) {
+      if(isExcludedField(mesh->get_tag(VERT,i)->name()) ) continue;
+      if(mesh->get_tag(VERT,i)->type() != OMEGA_H_F64) continue;
+      const auto name = mesh->get_tag(VERT,i)->name();
+      const auto name_mod = prefix + name + postfix;
+      if(verbose) {
+        std::cout << "P" << mesh->comm()->rank()
+                  << ": Writing element variable \"" << name << "\" as \"" << name_mod
+                  << "\" at time step " << time_step << '\n';
+      }
+      ex_put_variable_name(exodus_file, EX_NODAL, i, name_mod.c_str());
+      auto field = mesh->get_array<Real>(VERT, name);
+      auto field_h = HostRead<Real>(field);
+      ex_put_var(exodus_file, time_step, EX_NODAL, i, 1, mesh->nverts(), field_h.data());
+    }
+  }
+}
+
 void write(
     filesystem::path const& path, Mesh* mesh, bool verbose, int classify_with) {
   begin_code("exodus::write");
@@ -804,7 +845,14 @@ void write(
     if (classify_with & exodus::SIDE_SETS) {
       CALL(ex_put_names(file, EX_SIDE_SET, set_name_ptrs.data()));
     }
-  }
+  } //end if(classify_with)
+
+  // Write field data
+  int time_step = 1;
+  double time_value = 0.0;
+  ex_put_time(file, time_step, &time_value);
+  write_nodal_fields(file, mesh, time_step, "", "", true);
+
   CALL(ex_close(file));
   end_code();
 }
