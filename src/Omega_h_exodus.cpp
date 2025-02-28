@@ -634,8 +634,9 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
   if (num_nodal_vars > 0) {
     if(verbose)
       std::cout << "P" << mesh->comm()->rank() << ": " << num_nodal_vars << " nodal variables\n";
-    ex_put_variable_param(exodus_file, EX_NODAL, num_nodal_vars);
+    CALL(ex_put_variable_param(exodus_file, EX_NODAL, num_nodal_vars));
 
+    int exoVarIdx = 1;
     for (int i = 0; i<mesh->ntags(VERT); i++) {
       if(isExcludedField(mesh->get_tag(VERT,i)->name()) ) continue;
       if(mesh->get_tag(VERT,i)->type() != OMEGA_H_F64) continue;
@@ -646,10 +647,13 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
                   << ": Writing element variable \"" << name << "\" as \"" << name_mod
                   << "\" at time step " << time_step << '\n';
       }
-      ex_put_variable_name(exodus_file, EX_NODAL, i, name_mod.c_str());
+      CALL(ex_put_variable_name(exodus_file, EX_NODAL, exoVarIdx, name_mod.c_str()));
       auto field = mesh->get_array<Real>(VERT, name);
       auto field_h = HostRead<Real>(field);
-      ex_put_var(exodus_file, time_step, EX_NODAL, i, 1, mesh->nverts(), field_h.data());
+      assert(field_h.size() == mesh->nverts());
+      auto ignored = 1;
+      CALL(ex_put_var(exodus_file, time_step, EX_NODAL, exoVarIdx, ignored, mesh->nverts(), field_h.data()));
+      exoVarIdx++;
     }
   }
 }
