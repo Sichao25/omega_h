@@ -812,7 +812,8 @@ void write(
             file, EX_NODE_SET, set_id, h_set_nodes2node.data(), nullptr));
       }
     }
-    std::vector<std::string> set_names(surface_set.size());
+    std::vector<std::string> side_set_names(surface_set.size());
+    std::vector<std::string> node_set_names(surface_set.size());
     for (auto& pair : mesh->class_sets) {
       auto& name = pair.first;
       for (auto& cp : pair.second) {
@@ -820,11 +821,13 @@ void write(
         std::size_t index = 0;
         for (auto surface_id : surface_set) {
           if (surface_id == cp.id) {
-            set_names[index] = name;
+            const auto node_set_name = std::string("boundary_node_set_") + std::to_string(index);
+            node_set_names[index] = node_set_name;
             if (verbose && (classify_with & exodus::NODE_SETS)) {
               std::cout << "P" << mesh->comm()->rank() << ": node set " << surface_id << " will be called \""
-                        << name << "\"\n";
+                        << node_set_name << "\"\n";
             }
+            side_set_names[index] = name;
             if (verbose && (classify_with & exodus::SIDE_SETS)) {
               std::cout << "P" << mesh->comm()->rank() << ": side set " << surface_id << " will be called \""
                         << name << "\"\n";
@@ -834,20 +837,26 @@ void write(
         }
       }
     }
-    std::vector<char*> set_name_ptrs(surface_set.size(), nullptr);
-    for (std::size_t i = 0; i < set_names.size(); ++i) {
-      if (set_names[i].empty()) {
+    //side sets are named in mesh->class_sets
+    std::vector<char*> side_set_name_ptrs(surface_set.size(), nullptr);
+    for (std::size_t i = 0; i < side_set_names.size(); ++i) {
+      if (side_set_names[i].empty()) {
         std::stringstream ss;
-        ss << "surface_" << i;
-        set_names[i] = ss.str();
+        ss << "surface_side_set_" << i;
+        side_set_names[i] = ss.str();
       }
-      set_name_ptrs[i] = const_cast<char*>(set_names[i].c_str());
+      side_set_name_ptrs[i] = const_cast<char*>(side_set_names[i].c_str());
+    }
+    //node sets are explicitly named
+    std::vector<char*> node_set_name_ptrs(surface_set.size(), nullptr);
+    for (std::size_t i = 0; i < node_set_names.size(); ++i) {
+      node_set_name_ptrs[i] = const_cast<char*>(node_set_names[i].c_str());
     }
     if (classify_with & exodus::NODE_SETS) {
-      CALL(ex_put_names(file, EX_NODE_SET, set_name_ptrs.data()));
+      CALL(ex_put_names(file, EX_NODE_SET, node_set_name_ptrs.data()));
     }
     if (classify_with & exodus::SIDE_SETS) {
-      CALL(ex_put_names(file, EX_SIDE_SET, set_name_ptrs.data()));
+      CALL(ex_put_names(file, EX_SIDE_SET, side_set_name_ptrs.data()));
     }
   } //end if(classify_with)
 
