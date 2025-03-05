@@ -114,7 +114,7 @@ namespace {
   if(tgtDim == -1) {
     tgtDim = dim();
   }
-  auto patches = ask_up(VERT,tgtDim);
+  auto patches = ask_adj(VERT,tgtDim);
   auto patchDone = patch_sufficient(patches, minPatchSize);
   if( get_min(patchDone) == 1 )
     return patches;
