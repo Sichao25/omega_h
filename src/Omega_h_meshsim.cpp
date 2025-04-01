@@ -660,6 +660,18 @@ MixedMesh readMixedImpl(filesystem::path const& mesh_fname,
   return mesh;
 }
 
+Mesh readMesh(pMesh* m,filesystem::path const& numbering_fname, CommPtr comm) {\
+  auto simMeshInfo = getSimMeshInfo(*m);
+  const bool hasNumbering = (numbering_fname.native() != std::string(""));
+  pMeshNex numbering = hasNumbering ? MeshNex_load(numbering_fname.c_str(), *m) : nullptr;
+  auto mesh = Mesh(comm->library());
+  mesh.set_comm(comm);
+  mesh.set_parting(OMEGA_H_ELEM_BASED);
+  meshsim::read_internal(*m, &mesh, numbering, simMeshInfo);
+  if(hasNumbering) MeshNex_delete(numbering);
+  return mesh;
+}
+
 Mesh readImpl(filesystem::path const& mesh_fname, filesystem::path const& mdl_fname,
     filesystem::path const& numbering_fname, CommPtr comm) {
   MS_init();
@@ -671,14 +683,7 @@ Mesh readImpl(filesystem::path const& mesh_fname, filesystem::path const& mdl_fn
   pProgress p = NULL;
   pGModel g = GM_load(mdl_fname.c_str(), nm, p);
   pMesh m = M_load(mesh_fname.c_str(), g, p);
-  auto simMeshInfo = getSimMeshInfo(m);
-  const bool hasNumbering = (numbering_fname.native() != std::string(""));
-  pMeshNex numbering = hasNumbering ? MeshNex_load(numbering_fname.c_str(), m) : nullptr;
-  auto mesh = Mesh(comm->library());
-  mesh.set_comm(comm);
-  mesh.set_parting(OMEGA_H_ELEM_BASED);
-  meshsim::read_internal(m, &mesh, numbering, simMeshInfo);
-  if(hasNumbering) MeshNex_delete(numbering);
+  auto mesh = readMesh(&m, numbering_fname, comm);
   M_release(m);
   GM_release(g);
 #ifdef OMEGA_H_USE_SIMDISCRETE
