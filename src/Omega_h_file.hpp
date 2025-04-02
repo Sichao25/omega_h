@@ -13,6 +13,8 @@
 #include <Omega_h_mixedMesh.hpp>
 #include <Omega_h_tag.hpp>
 
+#include "MeshSim.h"
+
 namespace Omega_h {
 
 OMEGA_H_DLL Mesh read_mesh_file(filesystem::path const& path, CommPtr comm);
@@ -38,7 +40,14 @@ namespace meshsim {
  * @param[in] model path to Simmetrix GeomSim .smd model file
  */
 bool isMixed(filesystem::path const& mesh, filesystem::path const& model);
-
+/**
+ * Convert a serial Simmetrix sms mesh classified on the specified model to an
+ * Omega_h mesh instance.
+ * @param[in] pointer to Simmetrix mesh instance (pMesh)
+ * @param[in] numbering path to Simmetrix MeshNex .nex numbering file
+ * @param[in] comm path to Omega_h communicator instance
+ */
+Mesh read(pMesh* m, filesystem::path const& numbering_fname, CommPtr comm);
 /**
  * Convert a serial Simmetrix sms mesh classified on the specified model to an
  * Omega_h mesh instance.
