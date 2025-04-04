@@ -13,7 +13,9 @@
 #include <Omega_h_mixedMesh.hpp>
 #include <Omega_h_tag.hpp>
 
+#ifdef OMEGA_H_USE_SIMMODSUITE
 #include "MeshSim.h"
+#endif
 
 namespace Omega_h {
 
