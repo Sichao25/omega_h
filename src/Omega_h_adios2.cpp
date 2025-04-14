@@ -59,7 +59,7 @@ static void read_value(adios2::IO &io, adios2::Engine &reader,
 
 template <typename T>
 static void write_array(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, 
-		Read<T> array, std::string &name)
+		Read<T> array, int ncomp, std::string &name)
 {
   long unsigned int comm_size = mesh->comm()->size();
   long unsigned int rank = mesh->comm()->rank();
@@ -70,14 +70,12 @@ static void write_array(adios2::IO &io, adios2::Engine &writer, Mesh* mesh,
   for (size_t i = 0; i<array.size(); ++i)
      myData.push_back(array.data()[i]);
 
-  const std::size_t Nx = myData.size();
-  std::string subname = name + "_size";
-  write_value(io, writer, mesh->comm(), Nx, subname);
+  const std::size_t Nx = myData.size()/ncomp;
+  long unsigned int n_comp = static_cast<long unsigned int>(ncomp);
 
-  subname = name + "_data";
   adios2::Variable<T> bpData = 
 	  io.DefineVariable<T>(
-          subname, {comm_size * Nx}, {rank * Nx}, {Nx}, adios2::ConstantDims);
+          name, {comm_size * Nx, n_comp}, {rank * Nx,0}, {Nx, n_comp}, adios2::ConstantDims);
   writer.Put(bpData, myData.data());
 }
 
@@ -113,10 +111,10 @@ static void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d
 {
   auto down = mesh->ask_down(d, d - 1);
   std::string name = pref+"down.ab2b_" + std::to_string(d);
-  write_array(io, writer, mesh, down.ab2b, name);
+  write_array(io, writer, mesh, down.ab2b, 1, name);
   if (d > 1) {
       name=pref+"down.codes_"+ std::to_string(d);
-      write_array(io, writer, mesh, down.codes, name);
+      write_array(io, writer, mesh, down.codes, 1, name);
     }
 }
 
@@ -206,16 +204,8 @@ static void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::s
 static void write_tag(adios2::IO &io, adios2::Engine &writer, 
               Mesh* mesh, TagBase const* tag, string &pre_name)
 {
-  std::string name = pre_name+"name";
-  adios2::Variable<std::string> bpString = io.DefineVariable<std::string>(name);
-  writer.Put(bpString, tag->name());
-
-  name=pre_name+"ncomps";
-  write_value(io, writer, mesh->comm(), (int32_t)tag->ncomps(), name, true);
-
-  name=pre_name+"type";
-  write_value(io, writer, mesh->comm(), (int8_t)tag->type(), name, true);
-
+  pre_name = pre_name+tag->name()+"/";
+  int ncomp = tag->ncomps();
 
   auto class_ids = tag->class_ids();
   int32_t n_class_ids = 0;
@@ -223,17 +213,15 @@ static void write_tag(adios2::IO &io, adios2::Engine &writer,
     n_class_ids = class_ids.size();
   }
 
-  name = pre_name+"n_class_ids";
-  write_value(io, writer, mesh->comm(), n_class_ids, name, true);
   if (n_class_ids > 0) {
-    name =pre_name+ "class_ids";
-    write_array(io, writer, mesh, class_ids, name);
+    std::string name =pre_name+ "class_ids";
+    write_array(io, writer, mesh, class_ids, 1, name);
   }
 
   auto f = [&](auto type) {
     using T = decltype(type);
-    name = pre_name+"data";
-    write_array(io, writer, mesh, as<T>(tag)->array(), name);
+    std::string name = pre_name+"data";
+    write_array(io, writer, mesh, as<T>(tag)->array(), ncomp, name);
   };
   apply_to_omega_h_types(tag->type(), std::move(f));
 }
@@ -282,17 +270,12 @@ static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
 
 static void write_tags(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
-  std::string name = pref+"ntags_" + to_string(d);
-  write_value(io, writer, mesh->comm(), mesh->ntags(d), name, true);
-
+  std::string name = "";
   for (int32_t i = 0; i < mesh->ntags(d); ++i)
   {
-    name = pref+"tag_" + to_string(d) + "_" + to_string(i) + "_";
+    name = pref+"tags/"+to_string(d)+"/";
     write_tag(io, writer, mesh, mesh->get_tag(d, i), name);
   }
-
-  name = pref+"nrctags_" + to_string(d);
-  write_value(io, writer, mesh->comm(), mesh->nrctags(d), name, true);
 
   int32_t i=0;
   for (const auto& rc_tag : mesh->get_rc_tags(d)) 
@@ -313,7 +296,7 @@ static void read_tags(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d,
 
   for (Int i = 0; i < ntags; ++i)
   {
-    name = pref+"tag_" + to_string(d) + "_" + to_string(i) + "_";
+    name = pref+"tags/"+to_string(d)+"/";
     read_tag(io, reader, mesh, d, name);
   }
 
@@ -331,9 +314,9 @@ static void write_part_boundary(adios2::IO &io, adios2::Engine &writer, Mesh* me
   if (mesh->comm()->size() == 1) return; 
   auto owners = mesh->ask_owners(d);
   std::string name = pref+"owner_"+to_string(d)+"_ranks";
-  write_array(io, writer, mesh, owners.ranks, name);
+  write_array(io, writer, mesh, owners.ranks, 1, name);
   name = pref+"owner_"+to_string(d)+"_idxs";
-  write_array(io, writer, mesh, owners.idxs, name);
+  write_array(io, writer, mesh, owners.idxs, 1, name);
 }
 
 static void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
@@ -376,9 +359,9 @@ static void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::
     Read<int32_t> gclas_id=Read<int32_t>(gclas_id_.write());
 
     name=pref+"gclas_"+to_string(i)+"_dim";
-    write_array(io, writer, mesh, gclas_dim, name);
+    write_array(io, writer, mesh, gclas_dim, 1, name);
     name=pref+"gclas_"+to_string(i)+"_id";
-    write_array(io, writer, mesh, gclas_id, name);
+    write_array(io, writer, mesh, gclas_id, 1, name);
     ++i;
   }
 }
@@ -429,9 +412,9 @@ static void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, st
     {
       auto parents = mesh->ask_parents(d);
       name = pref+"parent_"+to_string(d)+"_idx";
-      write_array(io, writer, mesh, parents.parent_idx, name);
+      write_array(io, writer, mesh, parents.parent_idx, 1, name);
       name = pref+"parent_"+to_string(d)+"_codes";
-      write_array(io, writer, mesh, parents.codes, name);
+      write_array(io, writer, mesh, parents.codes, 1, name);
     }
   }
 }
