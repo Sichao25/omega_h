@@ -466,6 +466,11 @@ if(BUILD_TESTING)
     osh_add_exe(periodic_test)
   endif()
 
+  if(Omega_h_USE_SEACASExodus)
+    test_func(osh2exo_multiCompField 1 ./osh2exo ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh)
+    set(TEST_EXES ${TEST_EXES} osh2exo_multiCompField)
+  endif()
+
   osh_add_exe(load_2d)
   set(TEST_EXES ${TEST_EXES} load_2d)
   will_fail_test_func(load_2d_box_100 1 ./load_2d box_100.osh)

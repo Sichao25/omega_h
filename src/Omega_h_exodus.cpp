@@ -627,7 +627,7 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
   for (int i = 0; i<mesh->ntags(VERT); i++) {
     if(mesh->get_tag(VERT,i)->type() == OMEGA_H_F64) {
       if( ! isExcludedField(mesh->get_tag(VERT,i)->name()) )
-        num_nodal_vars++;
+        num_nodal_vars+= mesh->get_tag(VERT,i)->ncomps();
     }
   }
   // Define nodal variable names in Exodus
@@ -641,19 +641,21 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
       if(isExcludedField(mesh->get_tag(VERT,i)->name()) ) continue;
       if(mesh->get_tag(VERT,i)->type() != OMEGA_H_F64) continue;
       const auto name = mesh->get_tag(VERT,i)->name();
-      const auto name_mod = prefix + name + postfix;
-      if(verbose) {
-        std::cout << "P" << mesh->comm()->rank()
-                  << ": Writing element variable \"" << name << "\" as \"" << name_mod
-                  << "\" at time step " << time_step << '\n';
-      }
-      CALL(ex_put_variable_name(exodus_file, EX_NODAL, exoVarIdx, name_mod.c_str()));
       auto field = mesh->get_array<Real>(VERT, name);
       auto field_h = HostRead<Real>(field);
-      assert(field_h.size() == mesh->nverts());
-      auto ignored = 1;
-      CALL(ex_put_var(exodus_file, time_step, EX_NODAL, exoVarIdx, ignored, mesh->nverts(), field_h.data()));
-      exoVarIdx++;
+      for(int comp = 0; comp < mesh->get_tag(VERT,i)->ncomps(); comp++) {
+        const auto name_mod = prefix + name + "_" + std::to_string(comp) + postfix;
+        if(verbose) {
+          std::cout << "P" << mesh->comm()->rank()
+                    << ": Writing nodal variable \"" << name << "\" with size " << field_h.size()
+                    << " as \"" << name_mod << "\" at time step " << time_step << '\n';
+        }
+        CALL(ex_put_variable_name(exodus_file, EX_NODAL, exoVarIdx, name_mod.c_str()));
+        auto ignored = 1;
+        CALL(ex_put_var(exodus_file, time_step, EX_NODAL, exoVarIdx, ignored,
+                        mesh->nverts(), field_h.data()+comp*mesh->nverts()));
+        exoVarIdx++;
+      }
     }
   }
 }
