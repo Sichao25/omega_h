@@ -467,7 +467,9 @@ if(BUILD_TESTING)
   endif()
 
   if(Omega_h_USE_SEACASExodus)
-    test_func(osh2exo_multiCompField 1 ./osh2exo ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh)
+    test_func(osh2exo_multiCompField 1 ./osh2exo
+      ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_2compTag.osh
+      plate_6elem_2compTag.exo)
     set(TEST_EXES ${TEST_EXES} osh2exo_multiCompField)
   endif()
 
