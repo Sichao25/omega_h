@@ -643,8 +643,10 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
       const auto name = mesh->get_tag(VERT,i)->name();
       auto field = mesh->get_array<Real>(VERT, name);
       auto field_h = HostRead<Real>(field);
+      const auto ncomps = mesh->get_tag(VERT,i)->ncomps();
       for(int comp = 0; comp < mesh->get_tag(VERT,i)->ncomps(); comp++) {
-        const auto name_mod = prefix + name + "_" + std::to_string(comp) + postfix;
+        std::string compSuffix = (ncomps>1) ? "_" + std::to_string(comp) : "";
+        const auto name_mod = prefix + name + compSuffix + postfix;
         if(verbose) {
           std::cout << "P" << mesh->comm()->rank()
                     << ": Writing nodal variable \"" << name << "\" with size " << field_h.size()
