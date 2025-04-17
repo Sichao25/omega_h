@@ -649,7 +649,7 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
         const auto name_mod = prefix + name + compSuffix + postfix;
         if(verbose) {
           std::cout << "P" << mesh->comm()->rank()
-                    << ": Writing nodal variable \"" << name << "\" with size " << field_h.size()
+                    << ": Writing component " << comp << " of nodal variable \"" << name << "\" with size " << field_h.size() / ncomps
                     << " as \"" << name_mod << "\" at time step " << time_step << '\n';
         }
         CALL(ex_put_variable_name(exodus_file, EX_NODAL, exoVarIdx, name_mod.c_str()));
