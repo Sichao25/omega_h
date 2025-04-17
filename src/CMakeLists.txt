@@ -470,6 +470,15 @@ if(BUILD_TESTING)
     test_func(osh2exo_multiCompField 1 ./osh2exo
       ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_2compTag.osh
       plate_6elem_2compTag.exo)
+    set_tests_properties(osh2exo_multiCompField PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: 4 nodal variables")
+    set(TEST_EXES ${TEST_EXES} osh2exo_multiCompField)
+    test_func(osh2exo_multiCompField_excluded 1 ./osh2exo
+      ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_2compTag.osh
+      plate_6elem_2compTag.exo
+      --excluded-nodal-fields "vec2d")
+    set_tests_properties(osh2exo_multiCompField_excluded PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: 2 nodal variables")
     set(TEST_EXES ${TEST_EXES} osh2exo_multiCompField)
   endif()
 

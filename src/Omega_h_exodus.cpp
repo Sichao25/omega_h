@@ -613,20 +613,20 @@ Mesh read_sliced(filesystem::path const&, CommPtr, bool, int, int) {
 }
 #endif
 
-bool isExcludedField(std::string fieldName) {
-  std::array<std::string, 2> excludedFields = {"metric", "coordinates"};
-  for( auto& name : excludedFields )
+bool isExcludedField(FieldNames excludedNodalFields, std::string fieldName) {
+  for( auto& name : excludedNodalFields )
     if(fieldName == name)
       return true;
   return false;
 }
 
 void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
-    std::string const& prefix, std::string const& postfix, bool verbose) {
+    std::string const& prefix, std::string const& postfix,
+    FieldNames excludedNodalFields, bool verbose) {
   int num_nodal_vars = 0;
   for (int i = 0; i<mesh->ntags(VERT); i++) {
     if(mesh->get_tag(VERT,i)->type() == OMEGA_H_F64) {
-      if( ! isExcludedField(mesh->get_tag(VERT,i)->name()) )
+      if( ! isExcludedField(excludedNodalFields, mesh->get_tag(VERT,i)->name()) )
         num_nodal_vars+= mesh->get_tag(VERT,i)->ncomps();
     }
   }
@@ -638,7 +638,7 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
 
     int exoVarIdx = 1;
     for (int i = 0; i<mesh->ntags(VERT); i++) {
-      if(isExcludedField(mesh->get_tag(VERT,i)->name()) ) continue;
+      if(isExcludedField(excludedNodalFields, mesh->get_tag(VERT,i)->name()) ) continue;
       if(mesh->get_tag(VERT,i)->type() != OMEGA_H_F64) continue;
       const auto name = mesh->get_tag(VERT,i)->name();
       auto field = mesh->get_array<Real>(VERT, name);
@@ -661,7 +661,8 @@ void write_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
 }
 
 void write(
-    filesystem::path const& path, Mesh* mesh, bool verbose, int classify_with) {
+    filesystem::path const& path, Mesh* mesh, bool verbose, int classify_with,
+    FieldNames excludedNodalFields) {
   begin_code("exodus::write");
   auto comp_ws = int(sizeof(Real));
   auto io_ws = comp_ws;
@@ -866,7 +867,7 @@ void write(
   int time_step = 1;
   double time_value = 0.0;
   ex_put_time(file, time_step, &time_value);
-  write_nodal_fields(file, mesh, time_step, "", "", true);
+  write_nodal_fields(file, mesh, time_step, "", "", excludedNodalFields, true);
 
   CALL(ex_close(file));
   end_code();
