@@ -1,6 +1,5 @@
 #include "Omega_h_adios2.hpp"
 #include <adios2.h>
-//#include <adios2/helper/adiosType.h>
 #include <iostream>
 #include "Omega_h_inertia.hpp" //<inertia::Rib>
 #include "Omega_h_timer.hpp"
