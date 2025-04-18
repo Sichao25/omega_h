@@ -101,8 +101,10 @@ void read_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
 void read_element_fields(int exodus_file, Mesh* mesh, int time_step,
     std::string const& prefix = "", std::string const& postfix = "",
     bool verbose = false);
+typedef std::vector<std::string> FieldNames;
 void write(filesystem::path const& path, Mesh* mesh, bool verbose = false,
-    int classify_with = NODE_SETS | SIDE_SETS);
+    int classify_with = NODE_SETS | SIDE_SETS,
+    FieldNames excludedNodalFields = FieldNames());
 Mesh read_sliced(filesystem::path const& path, CommPtr comm,
     bool verbose = false, int classify_with = NODE_SETS | SIDE_SETS,
     int time_step = -1);
