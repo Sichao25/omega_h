@@ -1,5 +1,6 @@
 #include "Omega_h_adios2.hpp"
 #include <adios2.h>
+//#include <adios2/helper/adiosType.h>
 #include <iostream>
 #include "Omega_h_inertia.hpp" //<inertia::Rib>
 #include "Omega_h_timer.hpp"
@@ -12,28 +13,18 @@ namespace Omega_h {
 
 namespace adios {
 
-
-enum Adios2_Type {
-  adios2_int8_t = 0,
-  adios2_int32_t = 2,
-  adios2_int64_t = 3,
-  adios2_double = 5,
-  adios2_undefined = 6,
-};
-
-
-Adios2_Type getDataType(std::string dataType)
+Omega_h_Type getOmegahDataType(std::string dataType)
 {
   if (dataType == "int8_t")
-    return adios2_int8_t;
+    return OMEGA_H_I8;
   if (dataType == "int32_t")
-    return adios2_int32_t;
+    return OMEGA_H_I32;
   if (dataType == "int64_t")
-    return adios2_int64_t;
+    return OMEGA_H_I64;
   if (dataType == "double")
-    return adios2_double;
+    return OMEGA_H_F64;
 
-  return adios2_undefined;
+  throw std::invalid_argument("Equivalent Omegah data type is not available for " + dataType);
 }
 
 template <typename T>
@@ -261,9 +252,8 @@ static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
   // Read tag name, # of componenets, and data type
   std::string tag_name = tagName;
   int32_t ncomps = shape[1];
-  Adios2_Type t = getDataType(var.Type()); 
-  int8_t type = t;
-  
+  Omega_h_Type type = getOmegahDataType(var.Type()); 
+ 
   name = pre_name + "/" + tagName + "/class_ids";
   var = io.InquireVariable(name);
   Read<int32_t> class_ids = {};
@@ -288,7 +278,7 @@ static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
       mesh->add_tag(d, tag_name, ncomps, array, true);
     }
   };
-  apply_to_omega_h_types(static_cast<Omega_h_Type>(type), std::move(f));
+  apply_to_omega_h_types(type, std::move(f));
 }
 
 static void write_tags(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
