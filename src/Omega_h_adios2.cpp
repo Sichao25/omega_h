@@ -347,17 +347,16 @@ static void read_part_boundary(adios2::IO &io, adios2::Engine &reader, Mesh* mes
 
 static void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
-  std::string name = pref+"gclas_size";
-  write_value(io, writer, mesh->comm(), (int32_t)mesh->class_sets.size(), name, true);
+  std::string name = "";
 
   int32_t i=0;
   for (auto& set : mesh->class_sets)
   {
-    name=pref+"gclas_"+to_string(i)+"_name";
+    name=pref+"gclas/"+to_string(i)+"/name";
     adios2::Variable<std::string> bpString = io.DefineVariable<std::string>(name);
     writer.Put(bpString, set.first);
 
-    name=pref+"gclas_"+to_string(i)+"_npairs";
+    name=pref+"gclas/"+to_string(i)+"/npairs";
     int32_t npairs = (int32_t)set.second.size();
     write_value(io, writer, mesh->comm(), npairs, name, true);
 
@@ -373,9 +372,9 @@ static void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::
     Read<int32_t> gclas_dim=Read<int32_t>(gclas_dim_.write());
     Read<int32_t> gclas_id=Read<int32_t>(gclas_id_.write());
 
-    name=pref+"gclas_"+to_string(i)+"_dim";
+    name=pref+"gclas/"+to_string(i)+"/dim";
     write_array(io, writer, mesh, gclas_dim, 1, name);
-    name=pref+"gclas_"+to_string(i)+"_id";
+    name=pref+"gclas/"+to_string(i)+"/id";
     write_array(io, writer, mesh, gclas_id, 1, name);
     ++i;
   }
@@ -383,28 +382,31 @@ static void write_sets(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::
 
 static void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
-  std::string name = pref+"gclas_size";
-  int32_t n;
-  read_value(io, reader, mesh->comm(), &n, name, true);
+  auto g = io.InquireGroup('/');
+  std::string groupName = pref+"gclas";
+  g.setPath(groupName);
+  auto groups = g.AvailableGroups();
+  int32_t n = groups.size();
 
+  std::string name = "";
   for (int32_t i = 0; i < n; ++i) 
   {
-    name=pref+"gclas_"+to_string(i)+"_name";
+    name=pref+"gclas/"+to_string(i)+"/name";
     adios2::Variable<std::string> bpString = io.InquireVariable<std::string>(name);
     std::string gclas_name;
     reader.Get(bpString, gclas_name);
 
-    name=pref+"gclas_"+to_string(i)+"_npairs";
+    name=pref+"gclas/"+to_string(i)+"/npairs";
     int32_t npairs;
     read_value(io, reader, mesh->comm(), &npairs, name, true);
 
     Read<int32_t> gclas_dim = {};
     Read<int32_t> gclas_id = {};
 
-    name=pref+"gclas_"+to_string(i)+"_dim";
+    name=pref+"gclas/"+to_string(i)+"/dim";
     read_array(io, reader, mesh, gclas_dim, name);
 
-    name=pref+"gclas_"+to_string(i)+"_id";
+    name=pref+"gclas/"+to_string(i)+"/id";
     read_array(io, reader, mesh, gclas_id,name);
 
     for (int32_t j = 0; j < npairs; ++j) {
@@ -426,9 +428,9 @@ static void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, st
     for (int32_t d = 0; d <= mesh->dim(); ++d) 
     {
       auto parents = mesh->ask_parents(d);
-      name = pref+"parent_"+to_string(d)+"_idx";
+      name = pref+"parent/"+to_string(d)+"/idx";
       write_array(io, writer, mesh, parents.parent_idx, 1, name);
-      name = pref+"parent_"+to_string(d)+"_codes";
+      name = pref+"parent/"+to_string(d)+"/codes";
       write_array(io, writer, mesh, parents.codes, 1, name);
     }
   }
@@ -444,9 +446,9 @@ static void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std
     for (int32_t d = 0; d <= mesh->dim(); ++d) 
     {
       Parents parents;
-      name = pref+"parent_"+to_string(d)+"_idx";
+      name = pref+"parent/"+to_string(d)+"/idx";
       read_array(io, reader, mesh, parents.parent_idx, name);
-      name = pref+"parent_"+to_string(d)+"_codes";
+      name = pref+"parent/"+to_string(d)+"/codes";
       read_array(io, reader, mesh, parents.codes, name);
       mesh->set_parents(d, parents);
     }
