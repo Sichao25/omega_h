@@ -85,8 +85,13 @@ static void write_array(adios2::IO &io, adios2::Engine &writer, Mesh* mesh,
      myData.push_back(array.data()[i]);
 
   const std::size_t Nx = myData.size()/ncomp;
-  long unsigned int n_comp = static_cast<long unsigned int>(ncomp);
 
+  // To avoid narrowing conversion warning.
+  size_t n_comp = static_cast <size_t>(ncomp); 
+ 
+  // This implementation only works in serial. Implementation to deal with
+  // parallel cases will be done in future. (04-23-2025)
+  assert(comm_size == 1);
   adios2::Variable<T> bpData = 
 	  io.DefineVariable<T>(
           name, {comm_size * Nx, n_comp}, {rank * Nx,0}, {Nx, n_comp}, adios2::ConstantDims);
@@ -101,9 +106,9 @@ static void read_array(adios2::IO &io, adios2::Engine &reader,
   
   auto var = io.InquireVariable(name);
   std::vector<size_t> shape = var.Count();
+  assert(shape.size() == 2);
   size_t Nx = shape[0];
   size_t Ny = shape[1];
-
   HostWrite<T> array_(Nx*Ny);
 
   adios2::Variable<T> bpData = io.InquireVariable<T>(name);
@@ -114,8 +119,8 @@ static void read_array(adios2::IO &io, adios2::Engine &reader,
     // read only the chunk corresponding to this rank
     bpData.SetSelection({{Nx * rank,0}, {Nx,Ny}});
     reader.Get(bpData, myData, adios2::Mode::Sync);
-    for (LO x=0; x<(LO)Nx; ++x)
-      array_.set(x, myData[x]);
+    for (LO x=0; x<(LO)(Nx*Ny); ++x)
+        array_.set(x, myData[x]);
     array=Read<T>(array_.write());
   }
 }
