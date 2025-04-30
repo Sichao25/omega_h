@@ -125,25 +125,26 @@ static void read_array(adios2::IO &io, adios2::Engine &reader,
   }
 }
 
-
 static void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
   auto down = mesh->ask_down(d, d - 1);
-  std::string name = pref+"down.ab2b_" + std::to_string(d);
-  write_array(io, writer, mesh, down.ab2b, 1, name);
+  int ncomp = d+1;  // only valid for 2D triangle, and 3D tetrahedron.
+  std::string name = pref+"down.adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
+  write_array(io, writer, mesh, down.ab2b, ncomp, name);
   if (d > 1) {
-      name=pref+"down.codes_"+ std::to_string(d);
-      write_array(io, writer, mesh, down.codes, 1, name);
+      ncomp = 3;
+      name=pref+"down.codes/"+ std::to_string(d);
+      write_array(io, writer, mesh, down.codes, ncomp, name);
     }
 }
 
 static void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
-  std::string name = pref+"down.ab2b_" + std::to_string(d);
+  std::string name = pref+"down.adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
   Adj down;
   read_array( io, reader, mesh, down.ab2b, name);
   if (d > 1) {
-    name=pref+"down.codes_"+ std::to_string(d);
+    name=pref+"down.codes/"+ std::to_string(d);
     read_array( io, reader, mesh, down.codes, name);
   }
   mesh->set_ents(d, down);
@@ -160,14 +161,11 @@ static void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::
   name=pref+"nghost_layers"; write_value(io, writer, mesh->comm(), (int32_t)mesh->nghost_layers(), name);
   auto hints = mesh->rib_hints();
   int32_t have_hints = (hints != nullptr);
-  name=pref+"have_hints"; write_value(io, writer, mesh->comm(), (int32_t)have_hints, name);
   if (have_hints) {
-    int32_t naxes = int32_t(hints->axes.size());
-    name=pref+"naxes"; write_value(io, writer, mesh->comm(), naxes, name);
     for (auto axis : hints->axes) {
       for (Int i = 0; i < 3; ++i) 
       {
-	name=pref+"axes_"+to_string(i); 
+	name=pref+"axes/"+to_string(i); 
 	write_value(io, writer, mesh->comm(), axis[i], name);
       }
     }
@@ -200,16 +198,21 @@ static void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::s
   name=pref+"nghost_layers"; read_value(io, reader, mesh->comm(), &nghost_layers, name);
   mesh->set_parting(Omega_h_Parting(parting), nghost_layers, false);
 
-  name=pref+"have_hints"; read_value(io, reader, mesh->comm(), &have_hints, name);
-  if (have_hints) { 
-    name=pref+"naxes"; read_value(io, reader, mesh->comm(), &naxes, name);
+  auto g = io.InquireGroup('/');
+  std::string groupName = pref+"axes/";
+  g.setPath(groupName);
+  auto groups = g.AvailableGroups();
+  have_hints = (groups.size() > 0 ? 1:0);
+
+  if (have_hints) {
+    naxes = groups.size()/3; 
     auto hints = std::make_shared<inertia::Rib>();
     for (I32 i = 0; i < naxes; ++i) 
     {
       Vector<3> axis;
       for (Int j = 0; j < 3; ++j)
       {
-        name=pref+"axes_"+to_string(j); 
+        name=pref+"axes/"+to_string(j); 
 	double value;
 	read_value(io, reader, mesh->comm(), &value, name);
 	axis[j] = value;
@@ -421,8 +424,7 @@ static void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::
 static void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
   int32_t has_parents = mesh->has_any_parents();
-  std::string name = pref+"has_parents";
-  write_value(io, writer, mesh->comm(), has_parents, name);
+  std::string name = "";
   if (has_parents) 
   {
     for (int32_t d = 0; d <= mesh->dim(); ++d) 
@@ -438,11 +440,15 @@ static void write_parents(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, st
 
 static void read_parents(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
-  int32_t has_parents;
-  std::string name = pref+"has_parents";
-  read_value(io, reader, mesh->comm(), &has_parents, name);
+  auto g = io.InquireGroup('/');
+  std::string groupName = pref+"parent";
+  g.setPath(groupName);
+  auto groups = g.AvailableGroups();
+  int32_t has_parents = (groups.size() > 0 ? 1:0);
+
   if (has_parents) 
   {
+    std::string name = "";
     for (int32_t d = 0; d <= mesh->dim(); ++d) 
     {
       Parents parents;
