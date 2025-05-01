@@ -129,22 +129,22 @@ static void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d
 {
   auto down = mesh->ask_down(d, d - 1);
   int ncomp = d+1;  // only valid for 2D triangle, and 3D tetrahedron.
-  std::string name = pref+"down.adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
+  std::string name = pref+"downward_adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
   write_array(io, writer, mesh, down.ab2b, ncomp, name);
   if (d > 1) {
       ncomp = 3;
-      name=pref+"down.codes/"+ std::to_string(d);
+      name=pref+"downward_codes/"+ std::to_string(d);
       write_array(io, writer, mesh, down.codes, ncomp, name);
     }
 }
 
 static void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d, std::string pref)
 {
-  std::string name = pref+"down.adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
+  std::string name = pref+"downward_adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
   Adj down;
   read_array( io, reader, mesh, down.ab2b, name);
   if (d > 1) {
-    name=pref+"down.codes/"+ std::to_string(d);
+    name=pref+"downward_codes/"+ std::to_string(d);
     read_array( io, reader, mesh, down.codes, name);
   }
   mesh->set_ents(d, down);
@@ -152,7 +152,10 @@ static void read_down(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, int d,
 
 static void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::string pref)
 {
-  std::string name=pref+"family";
+  std::string name=pref+"mesh_version";
+  int writer_version = 1;  // update this version with every major release.
+  write_value(io, writer, mesh->comm(), (int32_t)writer_version, name);
+  name=pref+"family";
   write_value(io, writer, mesh->comm(), (int32_t)mesh->family(), name);
   name=pref+"dim"; write_value(io, writer, mesh->comm(), (int32_t)mesh->dim(), name);
   name=pref+"comm_size";  write_value(io, writer, mesh->comm(), mesh->comm()->size(), name);
@@ -175,8 +178,18 @@ static void write_meta(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, std::
 // assumption: version>=7
 static void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::string pref)
 {
-  int32_t family, dim, commsize, commrank, parting, nghost_layers, have_hints, naxes;
-  std::string name=pref+"family";
+  int32_t writer_version, family, dim, commsize, commrank, parting, nghost_layers, have_hints, naxes;
+  std::string name=pref+"mesh_version";
+  int reader_version = 1;  // update this version with every major release.
+  read_value(io, reader, mesh->comm(), &writer_version, name);
+  if (writer_version < reader_version)
+  {
+    Omega_h_fail("Mesh was written with Omegah to adios2 writer version %d.\n"
+		 "Latest adios2 to Omegah reader version is %d. Make sure \n"
+                 "to update meshes in adios2 with latest writer version %d. \n"
+                  , writer_version, reader_version, reader_version);
+  }
+  name=pref+"family";
   read_value(io, reader, mesh->comm(), &family, name);
   mesh->set_family(Omega_h_Family(family));
 
