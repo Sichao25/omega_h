@@ -12,7 +12,7 @@ namespace Omega_h {
 
 namespace adios {
 
-Omega_h_Type getOmegahDataType(std::string dataType)
+Omega_h_Type getOmegahDataType(const std::string &dataType)
 {
   if (dataType == "int8_t")
     return OMEGA_H_I8;
