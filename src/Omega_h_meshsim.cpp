@@ -163,8 +163,6 @@ struct SimMeshEntInfo {
     pVertex vtx;
     LO v = 0;
     
-    if (transformedCoordId)
-      std::cout << "Coordinate Transformation is ON \n";
     while ((vtx = (pVertex) VIter_next(vertices))) {
       double xyz[3];
       V_coord(vtx,xyz);
