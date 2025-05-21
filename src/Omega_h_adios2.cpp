@@ -23,7 +23,7 @@ Omega_h_Type getOmegahDataType(const std::string &dataType)
   if (dataType == "double")
     return OMEGA_H_F64;
 
-  throw std::invalid_argument("Equivalent Omegah data type is not available for " + dataType);
+  fail("Equivalent Omegah data type is not available for %s\n", dataType.c_str());
 }
 
 template <typename T>
@@ -127,8 +127,9 @@ static void read_array(adios2::IO &io, adios2::Engine &reader,
 
 static void write_down(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, int d, std::string pref)
 {
-  auto down = mesh->ask_down(d, d - 1);
-  int ncomp = d+1;  // only valid for 2D triangle, and 3D tetrahedron.
+  assert (mesh->family() == OMEGA_H_SIMPLEX);
+  auto down = mesh->ask_down(d, d-1);
+  int ncomp = simplex_degree(d, d-1);
   std::string name = pref+"downward_adj/" + std::to_string(d) + "_to_" + std::to_string(d-1);
   write_array(io, writer, mesh, down.ab2b, ncomp, name);
   if (d > 1) {

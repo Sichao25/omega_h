@@ -4,6 +4,7 @@
 #include <Omega_h_mesh.hpp>
 #include "Omega_h_filesystem.hpp" // filesystem
 #include "Omega_h_library.hpp"
+#include "Omega_h_simplex.hpp"
 
 namespace Omega_h {
 
