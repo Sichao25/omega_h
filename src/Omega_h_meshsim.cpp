@@ -403,7 +403,7 @@ struct SimMeshEntInfo {
     pRegion rgn;
     int rgnIdx = 0;
     while ((rgn = (pRegion) RIter_next(regions))) {
-      assert(R_topoType(rgn) == rgnType);
+      OMEGA_H_CHECK(R_topoType(rgn) == rgnType);
       pPList verts = R_vertices(rgn,1);
       setVtxIds(verts, vtxPerRgn, rgnIdx, rgnClass.verts);
       rgnClass.id[rgnIdx] = classId(rgn);
