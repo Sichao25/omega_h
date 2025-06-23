@@ -92,6 +92,7 @@ set(Omega_h_USE_pybind11_DEFAULT OFF)
 bob_public_dep(pybind11)
 
 if(Omega_h_USE_Kokkos)
+  bob_option(Omega_h_FORCE_KOKKOS_SORT "Force omega_h sort to use kokkos sortbykey." ON)
   if ("CUDA" IN_LIST Kokkos_DEVICES)
       bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "ON")
   endif()
@@ -151,6 +152,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_ENABLE_DEMANGLED_STACKTRACE
     Omega_h_DBG
     Omega_h_USE_Kokkos
+    Omega_h_FORCE_KOKKOS_SORT
     Omega_h_USE_OpenMP
     Omega_h_USE_CUDA
     Omega_h_USE_SYCL
