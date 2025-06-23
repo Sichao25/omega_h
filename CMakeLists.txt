@@ -39,7 +39,6 @@ bob_option(Omega_h_ENABLE_DEMANGLED_STACKTRACE "Add linker options to enable hum
 bob_option(Omega_h_DBG "Enable debug prints, stacktraces, etc." OFF)
 bob_option(Omega_h_GPU_CHECK "Run GPU check after each test" OFF) #the check command is hardcoded!
 bob_option(Omega_h_USE_CTAGS "Generate Ctags" OFF)
-bob_option(Omega_h_FORCE_KOKKOS_SORT "Force omega_h sort to use kokkos sortbykey." ON)
 
 if (Omega_h_ENABLE_DEMANGLED_STACKTRACE)
   message(STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}")
@@ -93,6 +92,7 @@ set(Omega_h_USE_pybind11_DEFAULT OFF)
 bob_public_dep(pybind11)
 
 if(Omega_h_USE_Kokkos)
+  bob_option(Omega_h_FORCE_KOKKOS_SORT "Force omega_h sort to use kokkos sortbykey." ON)
   if ("CUDA" IN_LIST Kokkos_DEVICES)
       bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "ON")
   endif()

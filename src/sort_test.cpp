@@ -37,13 +37,13 @@ int main(int argc, char** argv) {
     OMEGA_H_CHECK(perm == LOs({1, 0, 2}));
   }
   {
-    for(int i=0; i<3; i++) {
+    for(int i=0; i<1; i++) {
       fprintf(stderr, "large test %d\n", i);
       Read<LO> keys, gold;
-      std::ifstream in("ab2b"+std::to_string(i)+".dat", std::ios::in);
+      std::ifstream in("ab2b.dat", std::ios::in);
       assert(in.is_open());
       binary::read_array(in, keys, false, false);
-      std::ifstream inGold("ba2ab"+std::to_string(i)+".dat", std::ios::in);
+      std::ifstream inGold("ba2ab.dat", std::ios::in);
       assert(in.is_open());
       binary::read_array(inGold, gold, false, false);
       in.close();

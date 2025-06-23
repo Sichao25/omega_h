@@ -660,7 +660,7 @@ if(BUILD_TESTING)
   else()
     test_func(describe_serial 1 ./describe ${CMAKE_SOURCE_DIR}/meshes/box_3d.osh)
   endif()
-
+  #test_func(sort_test 1 ./sort_test)
   if (Omega_h_USE_ADIOS2)
     osh_add_util(bp2osh)
     osh_add_util(osh2bp)
