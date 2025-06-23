@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang='en' >
+
+    
+
+    <head>
+        <meta charset="UTF-8" />
+        
+<title>Log in | Zulip</title>
+
+        <link id="favicon" rel="icon" href="https://static.zulipchat.com/static/images/favicon.svg?v=4" />
+        <link rel="alternate icon" href="https://static.zulipchat.com/static/images/favicon.png?v=4" />
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+        
+        <!-- Google / search engine tags -->
+
+    <meta name="robots" content="noindex,nofollow" />
+
+
+<!-- Open Graph / Facebook / Twitter meta tags -->
+<meta property="og:url" content="https://scorec.zulipchat.com/accounts/login/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Zulip" />
+
+<meta property="og:title" content="SCOREC" />
+
+
+<meta property="og:description" content="The Scientific Computation Research Center (SCOREC) is focused on the development of reliable simulation technologies for engineers, scientists, medical professionals, and other practitioners. These advancements enable experts in their fields to employ, appraise, and evaluate the behavior of physical, chemical, and biological systems of interest. [https://scorec.rpi.edu/about_us.php]" />
+
+
+<meta property="og:image" content="https://avatars.zulip.com/60765/realm/icon.png?version=2" />
+
+<meta name="twitter:card" content="summary" />
+        
+
+        
+        <script id="sentry-params" type="text/json">{"dsn":"https://26bb474451d946d6892d649ac54c3182@o48127.ingest.sentry.io/4504556882821120","environment":"production","realm_key":"scorec","sample_rate":1.0,"server_version":"10.0-1185-g46b0ccaa3a","trace_rate":0}</script>
+        
+
+        
+            <script src="https://static.zulipchat.com/static/webpack-bundles/5771.de2caf5e084ca47bb7be.js" defer crossorigin="anonymous" ></script>
+                <link href="https://static.zulipchat.com/static/webpack-bundles/1613.45cc07565dd95d94a082.css" rel="stylesheet"  />
+                <script src="https://static.zulipchat.com/static/webpack-bundles/1613.6293db0caa2f4d8e8bef.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/3275.b76f0c00ee913d9861d2.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/92.97a64aebe1e8dfc1e36f.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/5043.82d92dab4eda45069a7b.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/6644.417d1b72befc3a95b3eb.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/7969.57127e7a8e79e10e8842.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/7232.3ecefd81bc51dd3d6071.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/55.e40448c4afaa622f9315.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/5271.f1ee3bcb437a9ad9031c.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/2852.0674d05f19f7af520adf.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/3639.bd784e5449a46a622ee0.js" defer crossorigin="anonymous" ></script>
+                <link href="https://static.zulipchat.com/static/webpack-bundles/9139.2250b8185a148d67543c.css" rel="stylesheet"  />
+                <link href="https://static.zulipchat.com/static/webpack-bundles/276.387bcad8dac714ef411d.css" rel="stylesheet"  />
+                <script src="https://static.zulipchat.com/static/webpack-bundles/9584.176f573dd2441d1796c1.js" defer crossorigin="anonymous" ></script>
+                <link href="https://static.zulipchat.com/static/webpack-bundles/457.f0ea9efedd4780b758c0.css" rel="stylesheet"  />
+                <script src="https://static.zulipchat.com/static/webpack-bundles/7323.478538cf4b925b36e544.js" defer crossorigin="anonymous" ></script>
+                <script src="https://static.zulipchat.com/static/webpack-bundles/719.be5a1a54ecdcc812355e.js" defer crossorigin="anonymous" ></script>
+                <link href="https://static.zulipchat.com/static/webpack-bundles/signup.e88f51fb4777757f91b0.css" rel="stylesheet"  />
+                <script src="https://static.zulipchat.com/static/webpack-bundles/signup.3f3aa04162570d4cf763.js" defer crossorigin="anonymous" ></script>
+                
+        
+
+        
+        
+    </head>
+
+    <body>
+        
+<div class="portico-container" data-platform="Wget">
+    <div class="portico-wrap">
+        
+        <div class="header portico-header">
+    <div class="header-main" id="top_navbar">
+        
+        <div class="float-left">
+            
+            <div class="brand logo">
+                <a href="https://zulipchat.com/">
+                    <svg class="brand-logo" role="img" aria-label="Zulip" xmlns="http://www.w3.org/2000/svg" viewBox="68.96 55.62 1742.12 450.43" height="25">
+                        <path fill="hsl(0, 0%, 27%)" d="M473.09 122.97c0 22.69-10.19 42.85-25.72 55.08L296.61 312.69c-2.8 2.4-6.44-1.47-4.42-4.7l55.3-110.72c1.55-3.1-.46-6.91-3.64-6.91H129.36c-33.22 0-60.4-30.32-60.4-67.37 0-37.06 27.18-67.37 60.4-67.37h283.33c33.22-.02 60.4 30.3 60.4 67.35zM129.36 506.05h283.33c33.22 0 60.4-30.32 60.4-67.37 0-37.06-27.18-67.37-60.4-67.37H198.2c-3.18 0-5.19-3.81-3.64-6.91l55.3-110.72c2.02-3.23-1.62-7.1-4.42-4.7L94.68 383.6c-15.53 12.22-25.72 32.39-25.72 55.08 0 37.05 27.18 67.37 60.4 67.37zm522.5-124.15l124.78-179.6v-1.56H663.52v-48.98h190.09v34.21L731.55 363.24v1.56h124.01v48.98h-203.7V381.9zm338.98-230.14V302.6c0 45.09 17.1 68.03 47.43 68.03 31.1 0 48.2-21.77 48.2-68.03V151.76h59.09V298.7c0 80.86-40.82 119.34-109.24 119.34-66.09 0-104.96-36.54-104.96-120.12V151.76h59.48zm244.91 0h59.48v212.25h104.18v49.76h-163.66V151.76zm297 0v262.01h-59.48V151.76h59.48zm90.18 3.5c18.27-3.11 43.93-5.44 80.08-5.44 36.54 0 62.59 7 80.08 20.99 16.72 13.22 27.99 34.99 27.99 60.64 0 25.66-8.55 47.43-24.1 62.2-20.21 19.05-50.15 27.6-85.13 27.6-7.77 0-14.77-.39-20.21-1.17v93.69h-58.7V155.26zm58.7 118.96c5.05 1.17 11.27 1.55 19.83 1.55 31.49 0 50.92-15.94 50.92-42.76 0-24.1-16.72-38.49-46.26-38.49-12.05 0-20.21 1.17-24.49 2.33v77.37z"/>
+                    </svg>
+                </a>
+
+                
+                
+                
+                
+            </div>
+            
+        </div>
+
+        <div class="float-right top-links">
+            
+                
+                
+                <a href="/login/">Log in</a>
+                
+                
+            
+
+            
+                
+                <a href="/register/">Sign up</a>
+                
+            
+
+            
+        </div>
+    </div>
+</div>
+        
+        <div class="app portico-page ">
+            <div class="app-main portico-page-container">
+                
+
+<!-- The following empty tag has unique data-page-id so that this
+page can be easily identified in it's respective JavaScript file. -->
+<div data-page-id="login-page"></div>
+<div class="app login-page split-view new-style flex full-page">
+    <div class="inline-block">
+        <div class="lead">
+            <h1 class="get-started">Log in to Zulip</h1>
+        </div>
+
+        <div class="app-main login-page-container white-box inline-block">
+            
+            <div class="left-side">
+                <div class="org-header">
+                    <img class="avatar" src="https://avatars.zulip.com/60765/realm/icon.png?version=2" alt="" />
+                    <div class="info-box">
+                        <div class="organization-name">SCOREC</div>
+                        <div class="organization-path">https://scorec.zulipchat.com</div>
+                    </div>
+                </div>
+                <div class="description">
+                    <p>The Scientific Computation Research Center (SCOREC) is focused on the development of reliable simulation technologies for engineers, scientists, medical professionals, and other practitioners. These advancements enable experts in their fields to employ, appraise, and evaluate the behavior of physical, chemical, and biological systems of interest. [https://scorec.rpi.edu/about_us.php]</p>
+                </div>
+            </div>
+            
+
+            <div class="right-side">
+                
+                
+
+                    
+
+                    
+
+                    
+                        <form name="login_form" id="login_form" method="post" class="login-form"
+                          action="/accounts/login/">
+                            <input type="hidden" name="next" value="/user_uploads/60765/x7b7JpvmCzXvidwMuVIBvkI7/ab2b.dat" />
+
+                            
+                            <input type="hidden" name="csrfmiddlewaretoken" value="E6PhS8mCQ5xcpSK5YVWqSFtwLoA36aN5qzJLRUJ08EMje7UlpgUE3tltkmLK0dLe">
+
+                            
+                            <div class="input-box">
+                                <input id="id_username" type="email"
+                                  name="username" class="email required"
+                                   value="" autofocus 
+                                  maxlength="72" required />
+                                <label for="id_username">
+                                    
+                                    Email
+                                    
+                                </label>
+                            </div>
+
+                            <div class="input-box password-div">
+                                <input id="id_password" name="password" class="required" type="password" autocomplete="off"
+                                  
+                                  required />
+                                <label for="id_password">Password</label>
+                                <i class="fa fa-eye-slash password_visibility_toggle" role="button" tabindex="0"></i>
+                            </div>
+
+                            <div class="actions forgot-password-container">
+                                
+                                <a class="forgot-password" href="/accounts/password/reset/">Forgot your password?</a>
+                                
+                            </div>
+
+                            
+
+                            
+
+                            <button type="submit" name="button" class="full-width">
+                                <img class="loader" src="https://static.zulipchat.com/static/images/loading/loader-white.svg" alt="" />
+                                <span class="text">Log in</span>
+                            </button>
+                        </form>
+
+                        
+                        <div class="or"><span>OR</span></div>
+                        
+
+                     <!-- if password_auth_enabled -->
+
+                    
+                    <div class="login-social">
+                        <form class="social_login_form form-inline" action="/accounts/login/social/google" method="get">
+                            <input type="hidden" name="next" value="/user_uploads/60765/x7b7JpvmCzXvidwMuVIBvkI7/ab2b.dat" />
+                            <button id="login_auth_button_google" class="login-social-button"
+                               style="background-image:url(https://static.zulipchat.com/static/images/authentication_backends/googl_e-icon.png)"  > Log in with Google
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="login-social">
+                        <form class="social_login_form form-inline" action="/accounts/login/social/github" method="get">
+                            <input type="hidden" name="next" value="/user_uploads/60765/x7b7JpvmCzXvidwMuVIBvkI7/ab2b.dat" />
+                            <button id="login_auth_button_github" class="login-social-button"
+                               style="background-image:url(https://static.zulipchat.com/static/images/authentication_backends/github-icon.png)"  > Log in with GitHub
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="login-social">
+                        <form class="social_login_form form-inline" action="/accounts/login/social/gitlab" method="get">
+                            <input type="hidden" name="next" value="/user_uploads/60765/x7b7JpvmCzXvidwMuVIBvkI7/ab2b.dat" />
+                            <button id="login_auth_button_gitlab" class="login-social-button"
+                               style="background-image:url(https://static.zulipchat.com/static/images/authentication_backends/gitlab-icon.png)"  > Log in with GitLab
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="login-social">
+                        <form class="social_login_form form-inline" action="/accounts/login/social/azuread-oauth2" method="get">
+                            <input type="hidden" name="next" value="/user_uploads/60765/x7b7JpvmCzXvidwMuVIBvkI7/ab2b.dat" />
+                            <button id="login_auth_button_azuread-oauth2" class="login-social-button"
+                               style="background-image:url(https://static.zulipchat.com/static/images/authentication_backends/azuread-icon.png)"  > Log in with AzureAD
+                            </button>
+                        </form>
+                    </div>
+                    
+
+                    <div class="actions signup-link-wrapper">
+                        Don't have an account?
+                        
+                        <a class="register-link float-right" href="/register/">Sign up</a>
+                        
+                    </div>
+                
+            </div>
+        </div>
+
+        
+        <div class="contact-admin">
+            <p class="invite-hint">Don't have an account yet? You need to be invited to join this organization.</p>
+        </div>
+        
+    </div>
+</div>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="alert-box"></div>
+    
+    <footer id="footer">
+    
+    <div class='footer__container'>
+        <div class="footer__section">
+            <h3 class="footer__section-title">
+                Product
+            </h3>
+            <ul>
+                <li><a href="/why-zulip/">Why Zulip</a></li>
+                <li><a href="/features/">Features</a></li>
+                <li><a href="/plans/">Plans & pricing</a></li>
+                <li><a href="/self-hosting/">Self-hosting</a></li>
+                <li><a href="/security/">Security</a></li>
+                <li><a href="/integrations/">Integrations</a></li>
+                <li class="extra_margin"><a href="/apps/">Desktop & mobile apps</a></li>
+                <li><a href="/new/">New organization</a></li>
+                <li><a href="/accounts/go/">Log in</a></li>
+                <li><a href="/accounts/find/">Find accounts</a></li>
+            </ul>
+        </div>
+        <div class="footer__section">
+            <h3 class="footer__section-title">
+                Solutions
+            </h3>
+            <ul>
+                <li><a href="/for/business/">Business</a></li>
+                <li><a href="/for/education/">Education</a></li>
+                <li><a href="/for/research/">Research</a></li>
+                <li><a href="/for/events/">Events & conferences</a></li>
+                <li><a href="/for/open-source/">Open source projects</a></li>
+                <li class="extra_margin"><a href="/for/communities/">Communities</a></li>
+                <li><a href="/use-cases/">Customer stories</a></li>
+                <li><a href="/communities/">Open communities</a></li>
+            </ul>
+        </div>
+        <div class="footer__section">
+            <h3 class="footer__section-title">
+                Resources
+            </h3>
+            <ul>
+                <li><a href="/help/getting-started-with-zulip">Getting started</a></li>
+                <li><a href="/help/">Help center</a></li>
+                <li><a href="/development-community/" target="_blank">Community chat</a></li>
+                <li><a href="/help/contact-support">Contact support</a></li>
+                <li><a href="/request-demo/">Get a demo</a></li>
+                <li><a href="/partners/">Partners</a></li>
+                <li class="extra_margin"><a href="https://status.zulip.com/">Zulip Cloud status</a></li>
+                <li>
+                    <a href="/help/moving-to-zulip">
+                        Moving to Zulip
+                    </a>
+                </li>
+                <li>
+                    <a href="https://zulip.readthedocs.io/en/stable/production/install.html">
+                        Installing a Zulip server
+                    </a>
+                </li>
+                <li>
+                    <a href="https://zulip.readthedocs.io/en/stable/production/upgrade.html">
+                        Upgrading a Zulip server
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="footer__section">
+            <h3 class="footer__section-title">
+                Contributing
+            </h3>
+            <ul>
+                <li>
+                    <a href="https://zulip.readthedocs.io/en/latest/contributing/contributing.html">
+                        Contributing guide
+                    </a>
+                </li>
+                <li><a href="/development-community/">Development community</a></li>
+                <li>
+                    <a href="https://zulip.readthedocs.io/en/latest/translating/translating.html">
+                        Translation
+                    </a>
+                </li>
+                <li><a href="/api/">API</a></li>
+                <li><a href="https://github.com/zulip/zulip/">GitHub</a></li>
+            </ul>
+        </div>
+        <div class="footer__section">
+            <h3 class="footer__section-title">
+                About us
+            </h3>
+            <ul>
+                <li>
+                    <a href="/team/">Team</a>
+                    &
+                    <a href="/history/">History</a>
+                </li>
+                <li><a href="/values/">Values</a></li>
+                <li><a href="/jobs/">Jobs</a></li>
+                <li><a href="https://blog.zulip.com/"  target="_blank">Blog</a></li>
+                <li><a href="https://zulip.com/help/support-zulip-project">Support Zulip</a></li>
+            </ul>
+            <div class="footer-social-links">
+                <a class="footer-social-icon footer-social-icon-x" title="X (Twitter)" href="https://twitter.com/zulip" target="_blank" rel="noopener noreferrer"></a>
+                <a class="footer-social-icon footer-social-icon-mastodon" title="Mastodon" href="https://fosstodon.org/@zulip" target="_blank" rel="noopener noreferrer"></a>
+                <a class="footer-social-icon footer-social-icon-linkedin" title="LinkedIn" href="https://www.linkedin.com/company/zulip-by-kandra-labs/" target="_blank" rel="noopener noreferrer"></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer__legal ">
+        <div class="footer__legal-container">
+            
+            <div class="copyright">© Kandra Labs, Inc. (“Zulip”)</div>
+            
+            <div class="footer__legal-spacer"></div>
+            
+            <a href="https://zulipchat.com/policies/terms">Terms of Service</a>
+            <a href="https://zulipchat.com/policies/privacy">Privacy policy</a>
+            
+            <a href="https://zulip.com/attribution/">Website attributions</a>
+            
+        </div>
+    </div>
+</footer>
+    
+</div>
+
+
+        
+        
+        <div hidden id="page-params" data-params='{"page_type":"default","development_environment":false,"request_language":"en"}'></div>
+    </body>
+
+</html>
+
