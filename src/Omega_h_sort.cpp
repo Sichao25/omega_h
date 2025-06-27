@@ -3,7 +3,7 @@
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/execution>
 #endif
-#if defined(OMEGA_H_FORCE_KOKKOS_SORT)
+#if defined(OMEGA_H_USE_Kokkos_Sort)
 #include <Kokkos_Sort.hpp>
 #endif
 #include <Omega_h_int_iterator.hpp>
@@ -89,7 +89,7 @@ static LOs sort_by_keys_tmpl(Read<T> keys) {
   LO* begin = perm.data();
   LO* end = perm.data() + n;
   T const* keyptr = keys.data();
-#if defined(OMEGA_H_FORCE_KOKKOS_SORT)
+#if defined(OMEGA_H_USE_Kokkos_Sort)
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   ExecSpace space{}; 
   Write<LO> base(n, 0, 1);
