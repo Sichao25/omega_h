@@ -146,6 +146,7 @@ struct SimMeshEntInfo {
   struct VertexInfo {
     HostWrite<Real> coords;
     HostWrite<LO> id;
+    HostWrite<GO> entId;
     HostWrite<I8> dim;
     HostWrite<LO> numbering;
   };
@@ -155,6 +156,7 @@ struct SimMeshEntInfo {
     VertexInfo vtxInfo;
     vtxInfo.coords = HostWrite<Real>(numVtx*maxDim);
     vtxInfo.id = HostWrite<LO>(numVtx);
+    vtxInfo.entId = HostWrite<GO>(numVtx);
     vtxInfo.dim = HostWrite<I8>(numVtx);
     if(hasNumbering)
       vtxInfo.numbering = HostWrite<LO>(numVtx);
@@ -192,6 +194,7 @@ struct SimMeshEntInfo {
         vtxInfo.coords[v * maxDim + j] = xyz[j];
       }
       vtxInfo.id[v] = classId(vtx);
+      vtxInfo.entId[v] = EN_id(vtx);
       vtxInfo.dim[v] = classType(vtx);
       if(hasNumbering) {
         vtxInfo.numbering[v] = getNumber(numbering,vtx);
@@ -582,6 +585,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info, pM
       Read<ClassId>(vtxInfo.id.write()));
   mesh->add_tag<I8>(0, "class_dim", 1,
       Read<I8>(vtxInfo.dim.write()));
+  mesh->add_tag<GO>(0, "global",1,
+      Read<GO>(vtxInfo.entId.write()));
   if(hasNumbering) {
     mesh->add_tag<LO>(0, "simNumbering", 1,
         Read<LO>(vtxInfo.numbering.write()));
