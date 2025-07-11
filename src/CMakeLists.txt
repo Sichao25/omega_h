@@ -672,13 +672,27 @@ if(BUILD_TESTING)
 	  output.bp)
   endif()
 
-  add_test(NAME test_osh2xgc
-          COMMAND ${CMAKE_COMMAND} -E env bash -c "
-    ./osh2xgc ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc &&
-    diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.node plate_6elem_xgc.node &&
-    diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.ele plate_6elem_xgc.ele
-  "
-  )
+  function(test_diff TEST_NAME FILE_A FILE_B PARENT)
+    add_test(NAME ${TEST_NAME} COMMAND diff ${FILE_A} ${FILE_B})
+    if(TEST ${TEST_NAME})
+      set_property(TEST ${TEST_NAME} PROPERTY LABELS "mesh")
+    endif()
+    set_tests_properties(${PARENT} PROPERTIES FIXTURES_SETUP  ${TEST_NAME}_fixture)
+    set_tests_properties(${TEST_NAME} PROPERTIES FIXTURES_REQUIRED ${TEST_NAME}_fixture)
+  endfunction()
+  test_func(run_osh2xgc 1 ./osh2xgc
+    ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh
+    plate_6elem_xgc)
+
+  test_diff(diff_osh2xgc_node
+    ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.node
+    plate_6elem_xgc.node
+    run_osh2xgc)
+
+  test_diff(diff_osh2xgc_ele
+    ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.ele
+    plate_6elem_xgc.ele
+    run_osh2xgc)
 
 endif()
 
