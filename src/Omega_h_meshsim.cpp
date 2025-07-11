@@ -139,6 +139,7 @@ struct SimMeshEntInfo {
 
   struct EntClass {
     HostWrite<LO> id;
+    HostWrite<GO> entId;
     HostWrite<I8> dim;
     HostWrite<LO> verts;
   };
@@ -222,6 +223,7 @@ struct SimMeshEntInfo {
     EntClass edgeClass;
     edgeClass.verts = HostWrite<LO>(numEdges*2);
     edgeClass.id = HostWrite<LO>(numEdges);
+    edgeClass.entId = HostWrite<GO>(numEdges);
     edgeClass.dim = HostWrite<I8>(numEdges);
     const int vtxPerEdge = 2;
     auto edgeIdx = 0;
@@ -235,6 +237,7 @@ struct SimMeshEntInfo {
       verts = PList_append(verts, E_vertex(edge,1));
       setVtxIds(verts, vtxPerEdge, edgeIdx, edgeClass.verts);
       edgeClass.id[edgeIdx] = classId(edge);
+      edgeClass.entId[edgeIdx] = EN_id(edge);
       edgeClass.dim[edgeIdx] = classType(edge);
       edgeIdx++;
     }
@@ -459,6 +462,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->add_coords_mix(vtxInfo.coords.write());
   mesh->add_tag<ClassId>(Topo_type::vertex, "class_id", 1,
                 Read<ClassId>(vtxInfo.id.write()));
+  mesh->add_tag<GO>(Topo_type::vertex, "global",1,
+                Read<GO>(vtxInfo.entId.write()));
   mesh->add_tag<I8>(Topo_type::vertex, "class_dim", 1,
                     Read<I8>(vtxInfo.dim.write()));
 
@@ -468,6 +473,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->set_ents(Topo_type::edge, Topo_type::vertex, Adj(ev2v));
   mesh->add_tag<ClassId>(Topo_type::edge, "class_id", 1,
                          Read<ClassId>(edges.id.write()));
+  mesh->add_tag<GO>(Topo_type::edge, "global", 1,
+                    Read<GO>(edges.entId.write()));
   mesh->add_tag<I8>(Topo_type::edge, "class_dim", 1,
                     Read<I8>(edges.dim.write()));
 
@@ -583,10 +590,10 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info, pM
   mesh->add_coords(vtxInfo.coords.write());
   mesh->add_tag<ClassId>(0, "class_id", 1,
       Read<ClassId>(vtxInfo.id.write()));
-  mesh->add_tag<I8>(0, "class_dim", 1,
-      Read<I8>(vtxInfo.dim.write()));
   mesh->add_tag<GO>(0, "global",1,
       Read<GO>(vtxInfo.entId.write()));
+  mesh->add_tag<I8>(0, "class_dim", 1,
+      Read<I8>(vtxInfo.dim.write()));
   if(hasNumbering) {
     mesh->add_tag<LO>(0, "simNumbering", 1,
         Read<LO>(vtxInfo.numbering.write()));
@@ -598,6 +605,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info, pM
   mesh->set_ents(1, Adj(ev2v));
   mesh->add_tag<ClassId>(1, "class_id", 1,
                 Read<ClassId>(edges.id.write()));
+  mesh->add_tag<GO>(1, "global", 1,
+                  Read<GO>(edges.entId.write()));
   mesh->add_tag<I8>(1, "class_dim", 1,
                     Read<I8>(edges.dim.write()));
 
