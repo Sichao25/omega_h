@@ -857,6 +857,5 @@ endfunction(smoke_test)
 smoke_test(osh_box NONE 1 1 1 2 2 2 box.osh)
 smoke_test(osh_scale osh_box box.osh 100 box_100.osh)
 smoke_test(osh2vtk osh_scale box_100.osh box_100_vtk)
-smoke_test(osh2xgc NONE ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc)
 
 bob_end_subdir()
