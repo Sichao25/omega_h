@@ -671,6 +671,12 @@ if(BUILD_TESTING)
 	  ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh
 	  output.bp)
   endif()
+
+  test_func(run_osh2xgc 1 ./osh2xgc ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc)
+  # compare with the gold files: checks both output file existence and content
+  test_func(diff_osh2xgc_node 1 diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.node plate_6elem_xgc.node)
+  test_func(diff_osh2xgc_ele 1 diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.ele plate_6elem_xgc.ele)
+
 endif()
 
 bob_config_header("${CMAKE_CURRENT_BINARY_DIR}/Omega_h_config.h")
@@ -848,5 +854,6 @@ endfunction(smoke_test)
 smoke_test(osh_box NONE 1 1 1 2 2 2 box.osh)
 smoke_test(osh_scale osh_box box.osh 100 box_100.osh)
 smoke_test(osh2vtk osh_scale box_100.osh box_100_vtk)
+smoke_test(osh2xgc NONE ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc)
 
 bob_end_subdir()
