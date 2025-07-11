@@ -672,10 +672,13 @@ if(BUILD_TESTING)
 	  output.bp)
   endif()
 
-  test_func(run_osh2xgc 1 ./osh2xgc ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc)
-  # compare with the gold files: checks both output file existence and content
-  test_func(diff_osh2xgc_node 1 diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.node plate_6elem_xgc.node)
-  test_func(diff_osh2xgc_ele 1 diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.ele plate_6elem_xgc.ele)
+  add_test(NAME test_osh2xgc
+          COMMAND ${CMAKE_COMMAND} -E env bash -c "
+    ./osh2xgc ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh plate_6elem_xgc &&
+    diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.node plate_6elem_xgc.node &&
+    diff ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_xgc-gold.ele plate_6elem_xgc.ele
+  "
+  )
 
 endif()
 
