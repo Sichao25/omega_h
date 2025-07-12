@@ -335,6 +335,7 @@ struct SimMeshEntInfo {
     const auto vtxPerTet = 4;
     tet.verts = HostWrite<LO>(numTets*vtxPerTet);
     tet.id = HostWrite<LO>(numTets);
+    tet.entId = HostWrite<GO>(numTets);
     tet.dim = HostWrite<I8>(numTets);
     auto tetIdx = 0;
 
@@ -342,6 +343,7 @@ struct SimMeshEntInfo {
     const auto vtxPerHex = 8;
     hex.verts = HostWrite<LO>(numHexs*vtxPerHex);
     hex.id = HostWrite<LO>(numHexs);
+    hex.entId = HostWrite<GO>(numHexs);
     hex.dim = HostWrite<I8>(numHexs);
     auto hexIdx = 0;
 
@@ -349,6 +351,7 @@ struct SimMeshEntInfo {
     const auto vtxPerWedge = 6;
     wedge.verts = HostWrite<LO>(numWedges*vtxPerWedge);
     wedge.id = HostWrite<LO>(numWedges);
+    wedge.entId = HostWrite<GO>(numWedges);
     wedge.dim = HostWrite<I8>(numWedges);
     auto wedgeIdx = 0;
 
@@ -356,6 +359,7 @@ struct SimMeshEntInfo {
     const auto vtxPerPyramid = 5;
     pyramid.verts = HostWrite<LO>(numPyramids*vtxPerPyramid);
     pyramid.id = HostWrite<LO>(numPyramids);
+    pyramid.entId = HostWrite<GO>(numPyramids);
     pyramid.dim = HostWrite<I8>(numPyramids);
     auto pyramidIdx = 0;
 
@@ -366,6 +370,7 @@ struct SimMeshEntInfo {
         pPList verts = R_vertices(rgn,1);
         setVtxIds(verts, vtxPerTet, tetIdx, tet.verts);
         tet.id[tetIdx] = classId(rgn);
+        tet.entId[tetIdx] = EN_id(rgn);
         tet.dim[tetIdx] = classType(rgn);
         tetIdx++;
       }
@@ -373,6 +378,7 @@ struct SimMeshEntInfo {
         pPList verts = R_vertices(rgn,1);
         setVtxIds(verts, vtxPerHex, hexIdx, hex.verts);
         hex.id[hexIdx] = classId(rgn);
+        hex.entId[hexIdx] = EN_id(rgn);
         hex.dim[hexIdx] = classType(rgn);
         hexIdx++;
       }
@@ -380,6 +386,7 @@ struct SimMeshEntInfo {
         pPList verts = R_vertices(rgn,1);
         setVtxIds(verts, vtxPerWedge, wedgeIdx, wedge.verts);
         wedge.id[wedgeIdx] = classId(rgn);
+        wedge.entId[wedgeIdx] = EN_id(rgn);
         wedge.dim[wedgeIdx] = classType(rgn);
         wedgeIdx++;
       }
@@ -387,6 +394,7 @@ struct SimMeshEntInfo {
         pPList verts = R_vertices(rgn,1);
         setVtxIds(verts, vtxPerPyramid, pyramidIdx, pyramid.verts);
         pyramid.id[pyramidIdx] = classId(rgn);
+        pyramid.entId[pyramidIdx] = EN_id(rgn);
         pyramid.dim[pyramidIdx] = classType(rgn);
         pyramidIdx++;
       }
@@ -407,6 +415,7 @@ struct SimMeshEntInfo {
     EntClass rgnClass;
     rgnClass.verts = HostWrite<LO>(numRgn*vtxPerRgn);
     rgnClass.id = HostWrite<LO>(numRgn);
+    rgnClass.entId = HostWrite<GO>(numRgn);
     rgnClass.dim = HostWrite<I8>(numRgn);
 
     const auto rgnType = ( vtxPerRgn == 4 ) ? Rtet : Rhex;
@@ -419,6 +428,7 @@ struct SimMeshEntInfo {
       pPList verts = R_vertices(rgn,1);
       setVtxIds(verts, vtxPerRgn, rgnIdx, rgnClass.verts);
       rgnClass.id[rgnIdx] = classId(rgn);
+      rgnClass.entId[rgnIdx] = EN_id(rgn);
       rgnClass.dim[rgnIdx] = classType(rgn);
       rgnIdx++;
     }
@@ -532,6 +542,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->set_ents(Topo_type::tetrahedron, Topo_type::triangle, down);
   mesh->add_tag<ClassId>(Topo_type::tetrahedron, "class_id", 1,
       Read<ClassId>(mixedRgnClass.tet.id.write()));
+  mesh->add_tag<GO>(Topo_type::tetrahedron, "global", 1,
+      Read<GO>(mixedRgnClass.tet.entId.write()));
   mesh->add_tag<I8>(Topo_type::tetrahedron, "class_dim", 1,
       Read<I8>(mixedRgnClass.tet.dim.write()));
 
@@ -542,6 +554,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->set_ents(Topo_type::hexahedron, Topo_type::quadrilateral, down);
   mesh->add_tag<ClassId>(Topo_type::hexahedron, "class_id", 1,
       Read<ClassId>(mixedRgnClass.hex.id.write()));
+  mesh->add_tag<GO>(Topo_type::hexahedron, "global", 1,
+      Read<GO>(mixedRgnClass.hex.entId.write()));
   mesh->add_tag<I8>(Topo_type::hexahedron, "class_dim", 1,
       Read<I8>(mixedRgnClass.hex.dim.write()));
 
@@ -555,6 +569,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->set_ents(Topo_type::wedge, Topo_type::triangle, down);
   mesh->add_tag<ClassId>(Topo_type::wedge, "class_id", 1,
       Read<ClassId>(mixedRgnClass.wedge.id.write()));
+  mesh->add_tag<GO>(Topo_type::wedge, "global", 1,
+      Read<GO>(mixedRgnClass.wedge.entId.write()));
   mesh->add_tag<I8>(Topo_type::wedge, "class_dim", 1,
       Read<I8>(mixedRgnClass.wedge.dim.write()));
 
@@ -568,6 +584,8 @@ void readMixed_internal(pMesh m, MixedMesh* mesh, SimMeshInfo info) {
   mesh->set_ents(Topo_type::pyramid, Topo_type::quadrilateral, down);
   mesh->add_tag<ClassId>(Topo_type::pyramid, "class_id", 1,
       Read<ClassId>(mixedRgnClass.pyramid.id.write()));
+  mesh->add_tag<GO>(Topo_type::pyramid, "global", 1,
+      Read<GO>(mixedRgnClass.pyramid.entId.write()));
   mesh->add_tag<I8>(Topo_type::pyramid, "class_dim", 1,
       Read<I8>(mixedRgnClass.pyramid.dim.write()));
 }
@@ -668,6 +686,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info, pM
     mesh->set_ents(3, down);
     mesh->template add_tag<ClassId>(3, "class_id", 1,
         Read<ClassId>(entClass.id.write()));
+    mesh->template add_tag<GO>(3, "global", 1,
+        Read<GO>(entClass.entId.write()));
     mesh->template add_tag<I8>(3, "class_dim", 1,
         Read<I8>(entClass.dim.write()));
   } else { //hypercube
@@ -681,6 +701,8 @@ void read_internal(pMesh m, Mesh* mesh, pMeshNex numbering, SimMeshInfo info, pM
     mesh->set_ents(3, down);
     mesh->template add_tag<ClassId>(3, "class_id", 1,
         Read<ClassId>(entClass.id.write()));
+    mesh->template add_tag<GO>(3, "global", 1,
+        Read<GO>(entClass.entId.write()));
     mesh->template add_tag<I8>(3, "class_dim", 1,
         Read<I8>(entClass.dim.write()));
   }
