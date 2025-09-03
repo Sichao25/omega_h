@@ -39,6 +39,7 @@ jobs:
            -Bbuild
            -DKokkos_ENABLE_CUDA=on
            -DKokkos_ARCH_TURING75=on
+           -DKokkos_ENABLE_IMPL_VIEW_LEGACY=on
            -DCMAKE_INSTALL_PREFIX=build/install
 
     - name: Build Kokkos
