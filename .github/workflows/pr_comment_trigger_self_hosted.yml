@@ -76,7 +76,7 @@ jobs:
             -DOmega_h_USE_SimModSuite=on \
             -DOmega_h_USE_SimDiscrete=on \
             -DSKIP_SIMMETRIX_VERSION_CHECK=on \
-            -DSIM_MPI=mpich4.1.1 \
+            -DSIM_MPI=mpich4.2.3 \
             -DOmega_h_USE_Kokkos=on \
             -DOmega_h_CUDA_ARCH="80" \
             -DCMAKE_CUDA_ARCHITECTURES="80" \
