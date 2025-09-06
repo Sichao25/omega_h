@@ -27,19 +27,20 @@ jobs:
     #   with:
     #     repository: kokkos/kokkos
     #     path: kokkos
+
+    - name: Install CMake and ZLib
+      run: apt update && apt install -y cmake zlib1g-dev
+
     - name: download kokkos
-      shell: bash
       working-directory: ${{github.workspace}}
-      run: git clone https://github.com/kokkos/kokkos.git kokkos
+      run: |
+        git clone https://github.com/kokkos/kokkos.git kokkos
     
     - name: List files
       run: | 
         ls -la
         ls kokkos
         ls kokkos/scripts
-
-    - name: Install CMake and ZLib
-      run: apt update && apt install -y cmake zlib1g-dev
 
     - name: Configure Kokkos
       shell: bash
