@@ -31,8 +31,8 @@ jobs:
     - name: List files
       run: | 
         ls -la
-        ls ${{github.workspace}}
-        ls ${{github.workspace}}/omega_h
+        ls kokkos
+        ls kokkos/scripts
         ls ${{github.workspace}}/kokkos
         ls ${{github.workspace}}/kokkos/scripts
 
