@@ -23,18 +23,20 @@ jobs:
       with:
         path: omega_h
 
-    - uses: actions/checkout@v4
-      with:
-        repository: kokkos/kokkos
-        path: kokkos
+    # - uses: actions/checkout@v4
+    #   with:
+    #     repository: kokkos/kokkos
+    #     path: kokkos
+    - name: download kokkos
+      shell: bash
+      working-directory: ${{github.workspace}}
+      run: git clone https://github.com/kokkos/kokkos.git kokkos
     
     - name: List files
       run: | 
         ls -la
         ls kokkos
         ls kokkos/scripts
-        ls ${{github.workspace}}/kokkos
-        ls ${{github.workspace}}/kokkos/scripts
 
     - name: Install CMake and ZLib
       run: apt update && apt install -y cmake zlib1g-dev
