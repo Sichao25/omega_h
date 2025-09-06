@@ -1,9 +1,8 @@
 name: CMake test matrix with CUDA
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches: [ test_action ]
+
 jobs:
   build:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -28,6 +27,11 @@ jobs:
       with:
         repository: kokkos/kokkos
         path: kokkos
+    
+    - name: List files
+      run: | 
+        ls ${{github.workspace}}/kokkos
+        ls ${{github.workspace}}/kokkos/scripts
 
     - name: Install CMake and ZLib
       run: apt update && apt install -y cmake zlib1g-dev
