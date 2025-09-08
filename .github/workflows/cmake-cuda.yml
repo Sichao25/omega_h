@@ -30,8 +30,6 @@ jobs:
       with:
         repository: kokkos/kokkos
         path: kokkos
-        ref: ''
-        submodules: recursive
 
     # - name: download kokkos
     #   working-directory: ${{github.workspace}}
