@@ -28,7 +28,7 @@ jobs:
         repository: kokkos/kokkos
         path: kokkos
         ref: ''
-        submodules: ''
+        submodules: recursive
 
     - name: Install CMake and ZLib
       run: apt update && apt install -y cmake zlib1g-dev git
