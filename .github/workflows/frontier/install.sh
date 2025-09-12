@@ -4,6 +4,7 @@ branch=$1
 
 cd /lustre/orion/phy122/scratch/castia5/globus-compute/omega_h-test
 
+module load PrgEnv-amd
 module load rocm
 module load craype-accel-amd-gfx90a
 module load cray-mpich
@@ -13,9 +14,10 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 # # Kokkos
 # rm kokkos -rf
 # rm build-kokkos -rf
-# git clone -b 4.1.00 git@github.com:Kokkos/kokkos.git
+# git clone git@github.com:Kokkos/kokkos.git
 # cmake -S kokkos -B build-kokkos \
 #  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+#  -DCMAKE_CXX_STANDARD=20 \
 #  -DCMAKE_CXX_COMPILER=CC \
 #  -DCMAKE_CXX_EXTENSIONS=OFF \
 #  -DKokkos_ENABLE_TESTS=OFF \
