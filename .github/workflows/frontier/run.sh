@@ -4,6 +4,7 @@ name=omega_h
 
 cd /lustre/orion/phy122/scratch/castia5/globus-compute/$name-test
 
+module load PrgEnv-amd
 module load rocm
 module load craype-accel-amd-gfx90a
 module load cray-mpich
