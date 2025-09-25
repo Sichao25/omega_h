@@ -52,6 +52,8 @@ jobs:
             -DENABLE_BUILD_LIB=ON \
             -DENABLE_BUILD_SHARED=ON
            cmake --build build -j 4 --target install
+           export CMAKE_PREFIX_PATH="${{ github.workspace }}/gmsh/build/install:$CMAKE_PREFIX_PATH"
+           export LD_LIBRARY_PATH="${{ github.workspace }}/gmsh/build/install/lib64:$LD_LIBRARY_PATH"
 
 
     - name: set mpi compiler wrapper
