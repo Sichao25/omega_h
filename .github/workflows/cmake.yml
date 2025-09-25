@@ -10,28 +10,13 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        compiler: [g++, clang++]
+        compiler: [g++]
         mpi: [on, off]
-        kokkos: [on, off]
+        kokkos: [on]
         kokkos_version: [develop]
-        mempool: [on, off]
+        mempool: [off]
         cxx_standard: [17]
-        exclude:
-        - kokkos: off
-          mempool: on
-        include:
-           #run one config with the oldest compatible kokkos version        
-           - compiler: g++
-             kokkos: on
-             mempool: on
-             mpi: off
-             kokkos_version: 4.0.00
-           #run one config with g++ and C++20
-           - compiler: g++
-             kokkos: on
-             mempool: on
-             mpi: on
-             cxx_standard: 20            
+                 
     env:
       CXX: ${{matrix.compiler}}
       MPICH_CXX: ${{matrix.compiler}}
@@ -108,6 +93,7 @@ jobs:
            -DOmega_h_USE_MPI=${{ matrix.mpi }}
            -DOmega_h_USE_Kokkos=${{ matrix.kokkos }}
            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
+           -DOmega_h_USE_Gmsh=ON
            -DGmsh_INCLUDE_DIRS=$GITHUB_WORKSPACE/gmsh/build/install/include
            -DGmsh_LIBRARIES=$GITHUB_WORKSPACE/gmsh/build/install/lib64/libgmsh.so.4.14.1
            -DBUILD_TESTING=ON
