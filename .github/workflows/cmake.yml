@@ -12,10 +12,10 @@ jobs:
       matrix:
         compiler: [g++]
         mpi: [on, off]
-        kokkos: [on]
+        kokkos: [on, off]
         kokkos_version: [develop]
         mempool: [off]
-        cxx_standard: [17]
+        cxx_standard: [17]     
                  
     env:
       CXX: ${{matrix.compiler}}
