@@ -90,7 +90,7 @@ jobs:
           ls -la ${{runner.temp }}/gmsh/install
           export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
           export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib64:$LD_LIBRARY_PATH"
-          cmake. -Bbuild \
+          cmake . -Bbuild \
           -DCMAKE_CXX_COMPILER=$CXX \
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
           -DCMAKE_VERBOSE_MAKEFILE=on \
