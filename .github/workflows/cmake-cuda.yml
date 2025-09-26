@@ -30,7 +30,7 @@ jobs:
         path: kokkos
 
     - name: Install CMake and ZLib
-      run: apt update && apt install -y cmake zlib1g-dev git
+      run: apt update && apt install -y cmake zlib1g-dev
 
     - name: Configure Kokkos
       shell: bash
@@ -40,6 +40,10 @@ jobs:
            -DKokkos_ENABLE_CUDA=on
            -DKokkos_ARCH_TURING75=on
            -DCMAKE_INSTALL_PREFIX=build/install
+
+    - name: Build Kokkos
+      shell: bash
+      run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
     - name: install gmsh
       working-directory: ${{runner.temp }}
@@ -55,17 +59,14 @@ jobs:
             -DENABLE_BUILD_SHARED=ON
            cmake --build build -j 4 --target install
 
-    - name: Build Kokkos
-      shell: bash
-      run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
-
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
       run: |
            export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
            export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
-           cmake . -Bbuild \
+           cmake . \
+            -Bbuild \
             -DCMAKE_VERBOSE_MAKEFILE=on \
             -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
             -DOmega_h_USE_MPI=off \
@@ -76,8 +77,8 @@ jobs:
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
             -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
-            -DBUILD_TESTING=ON \
-            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_TESTING=on \
+            -DBUILD_SHARED_LIBS=off \
             -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
