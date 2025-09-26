@@ -88,8 +88,10 @@ jobs:
       working-directory: ${{github.workspace}}/omega_h
       run: |
           ls -la ${{runner.temp }}/gmsh/install
+          ls -la ${{runner.temp }}/gmsh/install/lib
+          ls -la ${{runner.temp }}/gmsh/install/include
           export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
-          export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib64:$LD_LIBRARY_PATH"
+          export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
           cmake . -Bbuild \
           -DCMAKE_CXX_COMPILER=$CXX \
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
@@ -99,7 +101,7 @@ jobs:
           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
           -DOmega_h_USE_Gmsh=ON \
           -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
-          -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib64/libgmsh.so.4.14.1 \
+          -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
           -DBUILD_TESTING=ON \
           -DBUILD_SHARED_LIBS=OFF \
           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
