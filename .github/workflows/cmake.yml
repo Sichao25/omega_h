@@ -52,7 +52,6 @@ jobs:
             -DENABLE_BUILD_LIB=ON \
             -DENABLE_BUILD_SHARED=ON
            cmake --build build -j 4 --target install
-           pwd
 
 
     - name: set mpi compiler wrapper

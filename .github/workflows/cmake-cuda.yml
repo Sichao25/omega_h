@@ -30,7 +30,7 @@ jobs:
         path: kokkos
 
     - name: Install CMake and ZLib
-      run: apt update && apt install -y cmake zlib1g-dev
+      run: apt update && apt install -y cmake zlib1g-dev git
 
     - name: Configure Kokkos
       shell: bash
