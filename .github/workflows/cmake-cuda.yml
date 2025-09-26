@@ -46,7 +46,7 @@ jobs:
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
     - name: install gmsh
-      working-directory: ${{runner.temp }}
+      working-directory: ${{ runner.temp }}
       run: |
            git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
            cd gmsh
@@ -58,13 +58,17 @@ jobs:
             -DENABLE_BUILD_LIB=ON \
             -DENABLE_BUILD_SHARED=ON
            cmake --build build -j 4 --target install
+           echo ${{ runner.temp }}
+           pwd
 
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
       run: |
-           export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
-           export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
+           echo ${{ runner.temp }}
+           pwd
+           export CMAKE_PREFIX_PATH="${{ runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
+           export LD_LIBRARY_PATH="${{ runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
            cmake . \
             -Bbuild \
             -DCMAKE_VERBOSE_MAKEFILE=on \
