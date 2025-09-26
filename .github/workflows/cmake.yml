@@ -87,9 +87,9 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
       run: |
-          ls -la ${{runner.temp }}/gmsh/build/install
-          export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/build/install:$CMAKE_PREFIX_PATH"
-          export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/build/install/lib64:$LD_LIBRARY_PATH"
+          ls -la ${{runner.temp }}/gmsh/install
+          export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
+          export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib64:$LD_LIBRARY_PATH"
           cmake. -Bbuild \
           -DCMAKE_CXX_COMPILER=$CXX \
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
@@ -98,8 +98,8 @@ jobs:
           -DOmega_h_USE_Kokkos=${{ matrix.kokkos }} \
           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
           -DOmega_h_USE_Gmsh=ON \
-          -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/build/install/include \
-          -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/build/install/lib64/libgmsh.so.4.14.1 \
+          -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
+          -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib64/libgmsh.so.4.14.1 \
           -DBUILD_TESTING=ON \
           -DBUILD_SHARED_LIBS=OFF \
           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
