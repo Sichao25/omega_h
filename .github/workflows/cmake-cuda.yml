@@ -48,6 +48,7 @@ jobs:
     - name: install gmsh
       working-directory: ${{ runner.temp }}
       run: |
+           cd ${{ runner.temp }}
            git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
            cd gmsh
            mkdir build
@@ -59,6 +60,7 @@ jobs:
             -DENABLE_BUILD_SHARED=ON
            cmake --build build -j 4 --target install
            echo ${{ runner.temp }}
+           echo ${{github.workspace}}
            pwd
 
     - name: Configure CMake
@@ -66,6 +68,7 @@ jobs:
       working-directory: ${{github.workspace}}/omega_h
       run: |
            echo ${{ runner.temp }}
+           echo ${{github.workspace}}
            pwd
            export CMAKE_PREFIX_PATH="${{ runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
            export LD_LIBRARY_PATH="${{ runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
