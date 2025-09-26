@@ -46,9 +46,7 @@ jobs:
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
     - name: install gmsh
-      working-directory: ${{ runner.temp }}
       run: |
-           cd ${{ runner.temp }}
            git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
            cd gmsh
            mkdir build
@@ -67,11 +65,10 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
       run: |
-           echo ${{ runner.temp }}
            echo ${{github.workspace}}
            pwd
-           export CMAKE_PREFIX_PATH="${{ runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
-           export LD_LIBRARY_PATH="${{ runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
+           export CMAKE_PREFIX_PATH="$(pwd)/../../../gmsh/install:$CMAKE_PREFIX_PATH"
+           export LD_LIBRARY_PATH="$(pwd)/../../../gmsh/install/lib:$LD_LIBRARY_PATH"
            cmake . \
             -Bbuild \
             -DCMAKE_VERBOSE_MAKEFILE=on \
@@ -82,8 +79,8 @@ jobs:
             -DOmega_h_USE_Kokkos=on \
             -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
             -DOmega_h_USE_Gmsh=ON \
-            -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
-            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
+            -DGmsh_INCLUDE_DIRS=$(pwd)/../../../gmsh/install/include \
+            -DGmsh_LIBRARIES=$(pwd)/../../../gmsh/install/lib/libgmsh.so.4.14.1 \
             -DBUILD_TESTING=on \
             -DBUILD_SHARED_LIBS=off \
             -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
