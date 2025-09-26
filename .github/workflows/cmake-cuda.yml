@@ -1,7 +1,7 @@
 name: CMake test matrix with CUDA
 on:
   push:
-    branches: [ master ]
+    branches: [ master, yus/gmsh_ci_test ]
   pull_request:
     branches: [ master ]
 jobs:
@@ -41,6 +41,20 @@ jobs:
            -DKokkos_ARCH_TURING75=on
            -DCMAKE_INSTALL_PREFIX=build/install
 
+    - name: install gmsh
+      working-directory: ${{runner.temp }}
+      run: |
+           git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
+           cd gmsh
+           mkdir build
+           cmake . \
+            -Bbuild \
+            -DENABLE_BUILD_DYNAMIC=1 \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DENABLE_BUILD_LIB=ON \
+            -DENABLE_BUILD_SHARED=ON
+           cmake --build build -j 4 --target install
+
     - name: Build Kokkos
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
@@ -48,18 +62,23 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
-      run: cmake .
-           -Bbuild
-           -DCMAKE_VERBOSE_MAKEFILE=on
-           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
-           -DOmega_h_USE_MPI=off
-           -DOmega_h_USE_CUDA=on
-           -DOmega_h_CUDA_ARCH=75
-           -DOmega_h_USE_Kokkos=on
-           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
-           -DBUILD_TESTING=on
-           -DBUILD_SHARED_LIBS=off
-           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
+      run: |
+           export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
+           export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
+           cmake . -Bbuild \
+            -DCMAKE_VERBOSE_MAKEFILE=on \
+            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
+            -DOmega_h_USE_MPI=on \
+            -DOmega_h_USE_CUDA=on \
+            -DOmega_h_CUDA_ARCH=75 \
+            -DOmega_h_USE_Kokkos=on \
+            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
+            -DOmega_h_USE_Gmsh=ON \
+            -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
+            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
+            -DBUILD_TESTING=ON \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
