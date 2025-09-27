@@ -20,6 +20,9 @@ jobs:
             cxx_standard: 20     
 
     steps:
+    - name: Install CMake and ZLib
+      run: apt update && apt install -y cmake zlib1g-dev git
+    
     - uses: actions/checkout@v4
       with:
         path: omega_h
@@ -28,9 +31,6 @@ jobs:
       with:
         repository: kokkos/kokkos
         path: kokkos
-
-    - name: Install CMake and ZLib
-      run: apt update && apt install -y cmake zlib1g-dev git
 
     - name: Configure Kokkos
       shell: bash
@@ -45,40 +45,21 @@ jobs:
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
-    - name: install gmsh
-      run: |
-          git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
-          cd gmsh
-          mkdir build
-          cmake . \
-            -Bbuild \
-            -DENABLE_BUILD_DYNAMIC=1 \
-            -DCMAKE_INSTALL_PREFIX=install \
-            -DENABLE_BUILD_LIB=ON \
-            -DENABLE_BUILD_SHARED=ON
-          cmake --build build -j 4 --target install
-
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
-      run: |
-          export CMAKE_PREFIX_PATH="/__w/omega_h/omega_h/gmsh/install:$CMAKE_PREFIX_PATH"
-          export LD_LIBRARY_PATH="/__w/omega_h/omega_h/gmsh/install/lib:$LD_LIBRARY_PATH"
-          cmake . \
-            -Bbuild \
-            -DCMAKE_VERBOSE_MAKEFILE=on \
-            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-            -DOmega_h_USE_MPI=off \
-            -DOmega_h_USE_CUDA=on \
-            -DOmega_h_CUDA_ARCH=75 \
-            -DOmega_h_USE_Kokkos=on \
-            -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
-            -DOmega_h_USE_Gmsh=ON \
-            -DGmsh_INCLUDE_DIRS=/__w/omega_h/omega_h/gmsh/install/include \
-            -DGmsh_LIBRARIES=/__w/omega_h/omega_h/gmsh/install/lib/libgmsh.so.4.14.1 \
-            -DBUILD_TESTING=on \
-            -DBUILD_SHARED_LIBS=off \
-            -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
+      run: cmake .
+           -Bbuild
+           -DCMAKE_VERBOSE_MAKEFILE=on
+           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
+           -DOmega_h_USE_MPI=off
+           -DOmega_h_USE_CUDA=on
+           -DOmega_h_CUDA_ARCH=75
+           -DOmega_h_USE_Kokkos=on
+           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
+           -DBUILD_TESTING=on
+           -DBUILD_SHARED_LIBS=off
+           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
 
     - name: Build
       working-directory: ${{github.workspace}}/omega_h/build
