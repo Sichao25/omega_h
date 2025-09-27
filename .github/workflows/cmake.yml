@@ -81,12 +81,15 @@ jobs:
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
 
-    - uses: actions/checkout@v4
+    - name: Checkout ADIOS2
+      uses: actions/checkout@v4
+      if: ${{ matrix.mpi == 'on' }}
       with:
         repository: ornladios/ADIOS2
         path: ADIOS2
 
     - name: Configure ADIOS2
+      if: ${{ matrix.mpi == 'on' }}
       shell: bash
       working-directory: ${{github.workspace}}/ADIOS2
       run: cmake .
@@ -96,6 +99,7 @@ jobs:
            -DADIOS2_USE_ZFP=OFF
     
     - name: Build ADIOS2
+      if: ${{ matrix.mpi == 'on' }}
       shell: bash
       run: cmake --build $GITHUB_WORKSPACE/ADIOS2/build --target install
 
