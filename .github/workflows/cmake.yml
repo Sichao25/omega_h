@@ -96,6 +96,8 @@ jobs:
            -Bbuild
            -DCMAKE_INSTALL_PREFIX=build/install
            -DADIOS2_USE_CUDA=OFF
+           -DCMAKE_CXX_COMPILER=mpicxx
+           -DCMAKE_C_COMPILER=mpicc
            -DADIOS2_USE_ZFP=OFF
     
     - name: Build ADIOS2
