@@ -29,7 +29,7 @@ inline void check_array_type(ArrayType array_type) {
   if (rank == 0) {
     if (array_type == ArrayType::NotSpecified && warningCount == 0) {
       fprintf(stderr,
-        "Omega_h Warning: Tag array type is NotSpecified. This will be deprecated in a future version. It is recommended to set a specific array type for better clarity and to avoid unexpected behavior.\n");
+        "Omega_h Warning: Tag array type is NotSpecified. It is recommended to set a specific array type for better clarity and to avoid unexpected behavior.\n");
       warningCount++;
     }
   }
