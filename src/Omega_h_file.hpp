@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <vector>
+#include <fstream>
 
 #include <Omega_h_config.h>
 #include <Omega_h_array.hpp>
@@ -267,6 +268,79 @@ void write_reals_txt(filesystem::path const& filename, Reals a, Int ncomps);
 void write_reals_txt(std::ostream& stream, Reals a, Int ncomps);
 Reals read_reals_txt(filesystem::path const& filename, LO n, Int ncomps);
 Reals read_reals_txt(std::istream& stream, LO n, Int ncomps);
+
+// helper function to convert tag array types in files
+template <typename T>
+void _convert_mesh_array_type(
+    Mesh* mesh, std::vector<std::string> const& tag_names, std::vector<Int> dims, ArrayType array_type) {
+  for (size_t i = 0; i < tag_names.size(); ++i) {
+    auto tag_name = tag_names[i];
+    auto d = dims[i];
+    if (mesh->has_tag(d, tag_name)) {
+      auto tag = mesh->get_tag<T>(d, tag_name);
+      mesh->set_tag(d, tag_name, tag->array(), true, array_type);
+    }
+  }
+}
+
+template <typename T>
+void convert_file_array_type(
+    const std::string& input_path, const std::string& output_path, Library* lib, std::vector<std::string> const& tag_names, std::vector<Int> dims, ArrayType array_type = ArrayType::SymmetricSquareMatrix) {
+  if (tag_names.size() != dims.size()) {
+    Omega_h_fail("convert_file_array_type: tag_names and dims must have the same size\n");
+  }
+  auto const extension = filesystem::path(input_path).extension().string();
+  if (extension == ".osh") {
+    Mesh mesh = binary::read(input_path, lib->world());
+    _convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
+    binary::write(output_path, &mesh);
+  } else if (extension == ".vtu") {
+    std::ifstream file(input_path);
+    Mesh mesh = Omega_h::Mesh();
+    if (file.is_open()) {
+      Omega_h::vtk::read_vtu(file, lib->world(), &mesh);
+      file.close();
+    }
+    _convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
+    Omega_h::vtk::write_vtu(output_path, &mesh, mesh.dim());
+  } else if (extension == ".pvtu") {
+    Mesh mesh = Omega_h::Mesh(lib);
+    Omega_h::vtk::read_parallel(input_path, lib->world(), &mesh);
+    _convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
+    Omega_h::vtk::write_parallel(output_path, &mesh, mesh.dim());
+  } else if (extension == ".bp") {
+    #ifdef OMEGA_H_USE_ADIOS
+    Mesh mesh = Omega_h::adios::read(input_path, lib);
+    _convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
+    Omega_h::adios::write(output_path, &mesh);
+    #else
+    Omega_h_fail(
+        "Omega_h: Can't convert %s without reconfiguring with "
+        "OMEGA_H_USE_ADIOS=ON\n",
+        input_path.c_str());
+    #endif
+  } else if (extension == "meshb") {
+  #ifdef OMEGA_H_USE_LIBMESHB
+    Mesh mesh = Omega_h::Mesh(lib);
+    for (size_t i = 0; i < tag_names.size(); ++i) {
+      auto tag_name = tag_names[i];
+      Omega_h::meshb::read_sol(&mesh, input_path.c_str(), tag_name);
+      auto d = dims[i];
+      auto tag = mesh.get_tag<T>(d, tag_name);
+      mesh.set_tag(d, tag_name, tag->array(), true, array_type);
+      Omega_h::meshb::write_sol(&mesh, output_path.c_str(), tag_name);
+    }
+    #else
+    Omega_h_fail(
+        "Omega_h: Can't convert %s without reconfiguring with "
+        "OMEGA_H_USE_libMeshb=ON\n",
+        input_path.c_str());
+    #endif
+  } else {
+    Omega_h_fail("convert_file_array_type: unsupported file extension \"%s\" on \"%s\"\n",
+        extension.c_str(), input_path.c_str());
+  }
+}
 
 }  // namespace Omega_h
 
