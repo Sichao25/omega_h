@@ -19,24 +19,6 @@ enum class ArrayType {
   SymmetricSquareMatrix, // symmetric matrix with dim*(dim+1)/2 components
 };
 
-inline void check_array_type(ArrayType array_type) {
-#ifndef NDEBUG 
-  static int warningCount = 0;
-  int rank = 0;
-#ifdef OMEGA_H_USE_MPI
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
-  if (rank == 0) {
-    if (array_type == ArrayType::NotSpecified && warningCount == 0) {
-      fprintf(stderr,
-        "Omega_h Warning: Tag array type is NotSpecified. It is recommended to set a specific array type for better clarity and to avoid unexpected behavior.\n");
-      warningCount++;
-    }
-  }
-
-#endif
-}
-
  const std::unordered_map<ArrayType, std::string> ArrayTypeNames = {
     {ArrayType::NotSpecified, "NotSpecified"},
     {ArrayType::VectorND, "VectorND"},
