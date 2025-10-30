@@ -71,37 +71,6 @@ OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
   exit(EXIT_FAILURE);
 }
 
-
-#elif defined(OMEGA_H_USE_CUDA)
-
-template <typename InputIterator, typename OutputIterator>
-OutputIterator inclusive_scan(
-    InputIterator first, InputIterator last, OutputIterator result) {
-  std::size_t temp_storage_bytes;
-  int const n = int(last - first);
-  auto err = cub::DeviceScan::InclusiveSum(
-      nullptr, temp_storage_bytes, first, result, (last - first));
-  OMEGA_H_CHECK(err == cudaSuccess);
-  void* d_temp_storage = maybe_pooled_device_malloc(temp_storage_bytes);
-  err = cub::DeviceScan::InclusiveSum(
-      d_temp_storage, temp_storage_bytes, first, result, n);
-  OMEGA_H_CHECK(err == cudaSuccess);
-  maybe_pooled_device_free(d_temp_storage, temp_storage_bytes);
-  return result + n;
-  // return thrust::inclusive_scan(thrust::device, first, last, result);
-}
-
-template <typename InputIterator, typename OutputIterator, typename BinaryOp,
-    typename UnaryOp>
-OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
-    OutputIterator result, BinaryOp op, UnaryOp transform) {
-  Omega_h::entering_parallel = true;
-  auto const transform_parallel = std::move(transform);
-  Omega_h::entering_parallel = false;
-  return thrust::transform_inclusive_scan(thrust::device, first, last, result,
-      native_op(transform_parallel), native_op(op));
-}
-
 #elif defined(OMEGA_H_USE_OPENMP)
 
 template <typename InputIterator, typename OutputIterator>
