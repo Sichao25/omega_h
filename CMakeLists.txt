@@ -129,11 +129,6 @@ bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
 bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
 
 if (Omega_h_USE_CUDA)
-  enable_language(CUDA)
-  #check for versions of cuda/thrust that dont't work with omegah
-  if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.4)
-    message(FATAL_ERROR "CUDA >= 11.4 is required for Omega_h")
-  endif()
   #check for bad combos
   if(Omega_h_CHECK_BOUNDS)
     message(FATAL_ERROR "Bounds checking is only supported on the host, "
