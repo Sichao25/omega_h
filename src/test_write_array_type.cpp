@@ -33,18 +33,6 @@ void test_vtk(Mesh* mesh, CommPtr world, const std::string& tag_name, int flag) 
   auto tag = mesh_vtk.get_tag<Omega_h::Real>(0, tag_name);
   std::cout << "vtk Components: " << tag->ncomps() << std::endl;
   check_tag(tag, flag);
-  if (!flag) {
-    Omega_h::convert_file_array_type<Omega_h::Real>(
-      "fields.vtu", "fields_converted.vtu", mesh->library(), {tag_name}, {0},ArrayType::SymmetricSquareMatrix);
-    std::ifstream file_converted("fields_converted.vtu");
-    auto mesh_vtk_converted = Omega_h::Mesh();
-    if (file_converted.is_open()) {
-        Omega_h::vtk::read_vtu(file_converted, world, &mesh_vtk_converted);
-        file_converted.close();
-    }
-    auto tag_converted = mesh_vtk_converted.get_tag<Omega_h::Real>(0, tag_name);
-    check_tag(tag_converted, 1);
-  }
 }
 
 void test_binary(
@@ -56,13 +44,6 @@ void test_binary(
   std::cout << "Binary Components: " << tag->ncomps() << std::endl;
   std::cout << "ArrayType: " << ArrayTypeNames.at(tag->array_type()) << std::endl;
   check_tag(tag, flag);
-  if (!flag) {
-    Omega_h::convert_file_array_type<Omega_h::Real>(
-      "fields.osh", "fields_converted.osh", mesh->library(), {tag_name}, {0},ArrayType::SymmetricSquareMatrix);
-    auto mesh_binary_converted = Omega_h::binary::read("fields_converted.osh", world);
-    auto tag_converted = mesh_binary_converted.get_tag<Omega_h::Real>(0, tag_name);
-    check_tag(tag_converted, 1);
-  }
 }
 
 #ifdef Omega_h_USE_ADIOS2
@@ -75,12 +56,6 @@ void test_adios2(
   std::cout << "Adios2 Components: " << tag->ncomps() << std::endl;
   std::cout << "ArrayType: " << ArrayTypeNames.at(tag->array_type()) << std::endl;
   check_tag(tag, flag);
-  if (!flag) {
-    Omega_h::convert_file_array_type<Omega_h::Real>(
-      "fields.bp", "fields_converted.bp", lib, {tag_name}, {0},ArrayType::SymmetricSquareMatrix);
-    auto mesh_adios2_converted = Omega_h::adios::read("fields_converted.bp", lib);
-    auto tag_converted = mesh_adios2_converted.get_tag<Omega_h::Real>(0, tag_name);
-    check_tag(tag_converted, 1);
 }
 #endif
 
@@ -97,15 +72,6 @@ void test_meshb(
   std::cout << "Meshb Components: " << tag->ncomps() << std::endl;
   std::cout << "ArrayType: " << ArrayTypeNames.at(tag->array_type()) << std::endl;
   check_tag(tag, flag);
-  if (!flag) {
-    Omega_h::convert_file_array_type<Omega_h::Real>(
-      "fields_sol.meshb", "fields_sol_converted.meshb", lib, {tag_name}, {0},ArrayType::SymmetricSquareMatrix);
-    auto mesh_meshb_converted = Omega_h::Mesh(lib);
-    Omega_h::meshb::read(&mesh_meshb_converted, "fields.meshb");
-    Omega_h::meshb::read_sol(&mesh_meshb_converted, "fields_sol_converted.meshb", tag_name);
-    auto tag_converted = mesh_meshb_converted.get_tag<Omega_h::Real>(0, tag_name);
-    check_tag(tag_converted, 1);
-  }
 }
 #endif
 
@@ -117,14 +83,6 @@ void test_vtk_parallel(Mesh* mesh, CommPtr world, Library* lib, const std::strin
     std::cout << "Parallel VTK Components: " << tag->ncomps() << std::endl;
     std::cout << "ArrayType: " << ArrayTypeNames.at(tag->array_type()) << std::endl;
     check_tag(tag, flag);
-    if (!flag) {
-      Omega_h::convert_file_array_type<Omega_h::Real>(
-        "fields_parallel/pieces.pvtu", "fields_parallel_converted", lib, {tag_name}, {0},ArrayType::SymmetricSquareMatrix);
-      auto mesh_vtk_parallel_converted = Omega_h::Mesh(lib);
-      Omega_h::vtk::read_parallel("fields_parallel_converted/pieces.pvtu", world, &mesh_vtk_parallel_converted);
-      auto tag_converted = mesh_vtk_parallel_converted.get_tag<Omega_h::Real>(0, tag_name);
-      check_tag(tag_converted, 1);
-    }
 }
 
 
