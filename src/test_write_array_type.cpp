@@ -4,9 +4,9 @@
 
 #include "Omega_h_array_ops.hpp"
 #include "Omega_h_build.hpp"
-#include "Omega_h_compare.hpp"
+#include "Omega_h_mesh.hpp"
 #include "Omega_h_vtk.hpp"
-#include "Omega_h_xml_lite.hpp"
+#include <Omega_h_adios2.hpp>
 #include "Omega_h_file.hpp"
 #include "Omega_h_for.hpp"
 
@@ -46,7 +46,7 @@ void test_binary(
   check_tag(tag, flag);
 }
 
-#ifdef Omega_h_USE_ADIOS2
+#ifdef OMEGA_H_USE_ADIOS2
 void test_adios2(
   Mesh* mesh, Library* lib, const std::string& tag_name, int flag) {
   printf("Testing ADIOS2\n");
@@ -59,7 +59,7 @@ void test_adios2(
 }
 #endif
 
-#ifdef Omega_h_USE_libMeshb
+#ifdef OMEGA_H_USE_LIBMESHB
 void test_meshb(
   Mesh* mesh, Library* lib, const std::string& tag_name, int flag) {
   printf("Testing Meshb\n");
@@ -128,10 +128,10 @@ int main(int argc, char** argv) {
   } else {
     test_vtk(&mesh, world, tag_name, input_array_type_flag);
     test_binary(&mesh, world, tag_name, input_array_type_flag);
-#ifdef Omega_h_USE_ADIOS2
+#ifdef OMEGA_H_USE_ADIOS2
     test_adios2(&mesh, &lib, tag_name, input_array_type_flag);
 #endif
-#ifdef Omega_h_USE_libMeshb
+#ifdef OMEGA_H_USE_LIBMESHB
     test_meshb(&mesh, &lib, tag_name, input_array_type_flag);
 #endif
   }

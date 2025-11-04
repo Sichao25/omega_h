@@ -1,3 +1,5 @@
+#include <string>
+
 #include <Omega_h_array.hpp>
 #include <Omega_h_comm.hpp>
 #include <Omega_h_file.hpp>
@@ -5,6 +7,7 @@
 #include <Omega_h_filesystem.hpp>
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_tag.hpp>
+#include <Omega_h_adios2.hpp>
 
 // helper function to convert tag array types in files
 
@@ -21,6 +24,14 @@ namespace detail {
       }
     }
   }
+
+  std::string getFirstPart(const std::string& filename) {
+    size_t pos = filename.find('_');
+    if (pos != std::string::npos) {
+        return filename.substr(0, pos) + filename.substr(filename.find_last_of('.'));
+    }
+    return filename;
+}
 }
 
 template <typename T>
@@ -49,7 +60,7 @@ void convert_file_array_type(
     detail::convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
     Omega_h::vtk::write_parallel(output_path, &mesh, mesh.dim());
   } else if (extension == ".bp") {
-    #ifdef OMEGA_H_USE_ADIOS
+    #ifdef OMEGA_H_USE_ADIOS2
     Omega_h::Mesh mesh = Omega_h::adios::read(input_path, lib);
     detail::convert_mesh_array_type<T>(&mesh, tag_names, dims, array_type);
     Omega_h::adios::write(output_path, &mesh);
@@ -59,9 +70,19 @@ void convert_file_array_type(
         "OMEGA_H_USE_ADIOS=ON\n",
         input_path.c_str());
     #endif
-  } else if (extension == "meshb") {
+  } else if (extension == ".meshb") {
   #ifdef OMEGA_H_USE_LIBMESHB
     Omega_h::Mesh mesh = Omega_h::Mesh(lib);
+    std::string mesh_filename = detail::getFirstPart(input_path);
+    std::cout << "Reading meshb file: " << mesh_filename << std::endl;
+    try {
+      Omega_h::meshb::read(&mesh, mesh_filename);
+    } catch (...) {
+      Omega_h_fail("convert_file_array_type: failed to read meshb file '%s'. "
+        "Please ensure the mesh file and solution file have matching base names "
+        "(e.g., mesh.meshb and mesh_sol.meshb)\n", 
+        mesh_filename.c_str());
+    }
     for (size_t i = 0; i < tag_names.size(); ++i) {
       auto tag_name = tag_names[i];
       Omega_h::meshb::read_sol(&mesh, input_path.c_str(), tag_name);
@@ -86,7 +107,7 @@ int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
   if (argc < 5) {
     if (!lib.world()->rank())
-      fprintf(stderr, "Usage: %s inputMesh outputMesh tagName1 dim1 [tagName2 dim2 ...]\n", argv[0]);
+      fprintf(stderr, "Usage: %s inputMesh outputMesh tagName1 dim1 [tagName2 dim2 ...] targetArrayType\n", argv[0]);
     exit(EXIT_FAILURE);
   }
   std::string input_path = argv[1];
