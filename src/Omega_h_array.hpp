@@ -136,8 +136,6 @@ class HostRead {
   Read<T> read_;
 #if defined(OMEGA_H_USE_KOKKOS)
   typename Kokkos::View<const T*, Kokkos::HostSpace> mirror_;
-#elif defined(OMEGA_H_USE_CUDA)
-  std::shared_ptr<T[]> mirror_;
 #endif
  public:
   using value_type = T;
@@ -157,8 +155,6 @@ class HostWrite {
   Write<T> write_;
 #ifdef OMEGA_H_USE_KOKKOS
   typename View<T*>::host_mirror_type mirror_;
-#elif defined(OMEGA_H_USE_CUDA)
-  std::shared_ptr<T[]> mirror_;
 #endif
  public:
   using value_type = T;

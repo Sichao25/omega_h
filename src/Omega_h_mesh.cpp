@@ -1105,7 +1105,7 @@ LOs nodes_on_closure(
   return collect_marked(nodes_are_on);
 }
 
-#ifdef OMEGA_H_USE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
 __host__
 #endif
     void

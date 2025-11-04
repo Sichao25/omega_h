@@ -36,8 +36,6 @@
 
 #if defined(R3D_USE_KOKKOS)
 #define R3D_INLINE KOKKOS_INLINE_FUNCTION
-#elif defined(R3D_USE_CUDA)
-#define R3D_INLINE __device__ __host__ inline
 #else
 #define R3D_INLINE inline
 #endif

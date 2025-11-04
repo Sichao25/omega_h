@@ -104,7 +104,7 @@ if(Omega_h_USE_Kokkos)
   if ("HIP" IN_LIST Kokkos_DEVICES)
     bob_option(Omega_h_USE_HIP "Whether to use HIP" "ON")
   endif()
-  if (Omega_h_USE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
+  if (Kokkos_ENABLE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
     message(FATAL_ERROR
             "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
   endif()
@@ -112,7 +112,7 @@ endif()
 
 bob_option(Omega_h_MEM_SPACE_SHARED "Whether to use shared memory space" OFF)
 bob_option(Omega_h_MEM_SPACE_HOSTPINNED "Whether to use host pinned memory space" OFF)
-if ((Omega_h_USE_CUDA OR Omega_h_USE_HIP OR Omega_h_USE_SYCL) AND NOT (Omega_h_MEM_SPACE_SHARED OR Omega_h_MEM_SPACE_HOSTPINNED))
+if ((Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP OR Kokkos_ENABLE_SYCL) AND NOT (Omega_h_MEM_SPACE_SHARED OR Omega_h_MEM_SPACE_HOSTPINNED))
   bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" ON)
 else()
   bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" OFF)
@@ -126,14 +126,9 @@ endif()
 
 bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
 bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
-bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
+bob_option(Kokkos_ENABLE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
 
-if (Omega_h_USE_CUDA)
-  enable_language(CUDA)
-  #check for versions of cuda/thrust that dont't work with omegah
-  if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.4)
-    message(FATAL_ERROR "CUDA >= 11.4 is required for Omega_h")
-  endif()
+if (Kokkos_ENABLE_CUDA)
   #check for bad combos
   if(Omega_h_CHECK_BOUNDS)
     message(FATAL_ERROR "Bounds checking is only supported on the host, "
@@ -153,7 +148,6 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_Kokkos
     Omega_h_USE_Kokkos_Sort
     Omega_h_USE_OpenMP
-    Omega_h_USE_CUDA
     Omega_h_USE_SYCL
     Omega_h_USE_HIP
     Omega_h_MEM_SPACE_DEVICE
@@ -206,7 +200,7 @@ if(Omega_h_EXAMPLES)
 endif()
 add_subdirectory(src)
 
-if (Omega_h_USE_CUDA)
+if (Kokkos_ENABLE_CUDA)
   install(PROGRAMS
       ${CMAKE_CURRENT_SOURCE_DIR}/bin/nvcc_wrapper
       DESTINATION bin)

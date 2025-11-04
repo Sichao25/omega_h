@@ -7,7 +7,7 @@
 
 #include <Omega_h_scalar.hpp>
 #include <Omega_h_shared_alloc.hpp>
-#if defined(OMEGA_H_USE_CUDA)
+#if defined(KOKKOS_ENABLE_CUDA)
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -40,7 +40,7 @@ typename T::value_type parallel_reduce(LO n, T f, char const* name = "") {
   return result;
 }
 
-#if defined(OMEGA_H_USE_KOKKOS) and !defined(OMEGA_H_USE_CUDA)
+#if defined(OMEGA_H_USE_KOKKOS) and !defined(KOKKOS_ENABLE_CUDA)
 
 template <class Iterator, class Tranform, class Result, class Op>
 Result transform_reduce(
@@ -50,7 +50,7 @@ Result transform_reduce(
   return Result();
 }
 
-#elif defined(OMEGA_H_USE_CUDA)
+#elif defined(KOKKOS_ENABLE_CUDA)
 
 template <class Op>
 Op native_op(Op const& op) {

@@ -46,7 +46,7 @@ inline T const& HostRead<T>::operator[](LO i) const OMEGA_H_NOEXCEPT {
   OMEGA_H_CHECK_OP(0, <=, i);
   OMEGA_H_CHECK_OP(i, <, size());
 #endif
-#ifdef OMEGA_H_USE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
   return mirror_[i];
 #else
   return read_[i];
@@ -59,7 +59,7 @@ inline T& HostWrite<T>::operator[](LO i) const OMEGA_H_NOEXCEPT {
   OMEGA_H_CHECK_OP(0, <=, i);
   OMEGA_H_CHECK_OP(i, <, size());
 #endif
-#ifdef OMEGA_H_USE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
   return mirror_[i];
 #else
   return write_[i];

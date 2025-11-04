@@ -11,9 +11,6 @@
 
 namespace Omega_h {
 
-#ifdef OMEGA_H_USE_CUDA
-#endif
-
 #define OMEGA_H_INST(T)                                                        \
   template void Mesh::change_tagTorc<T>(                                       \
       Int ent_dim, Int ncomps, std::string const& name, LOs class_ids, bool);  \

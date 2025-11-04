@@ -119,11 +119,7 @@ else()
 	)
 endif()
 
-if (Omega_h_USE_CUDA)
-  if (NOT Omega_h_USE_Kokkos)
-    list(APPEND Omega_h_SOURCES Omega_h_for.cpp)
-  endif()
-else()
+if (NOT Kokkos_ENABLE_CUDA)
   list(APPEND Omega_h_SOURCES Omega_h_overlay.cpp)
 endif()
 
@@ -192,17 +188,13 @@ if(Omega_h_USE_Kokkos)
   list(APPEND Omega_h_SOURCES Omega_h_pool_kokkos.cpp)
 endif()
 
-if (Omega_h_USE_CUDA AND NOT Omega_h_USE_Kokkos)
-  set_source_files_properties(${Omega_h_SOURCES} PROPERTIES LANGUAGE CUDA)
-endif()
-
 add_library(omega_h ${Omega_h_SOURCES})
 add_library(Omega_h::omega_h ALIAS omega_h)
 
 set_property(TARGET omega_h PROPERTY CXX_STANDARD "17")
 set_property(TARGET omega_h PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET omega_h PROPERTY CXX_EXTENSIONS OFF)
-if (Omega_h_USE_CUDA)
+if (Kokkos_ENABLE_CUDA)
   set_property(TARGET omega_h PROPERTY CUDA_ARCHITECTURES ${Omega_h_CUDA_ARCH})
 endif()
 
@@ -260,7 +252,7 @@ if(Omega_h_USE_DOLFIN)
   target_include_directories(omega_h SYSTEM PUBLIC ${DOLFIN_3RD_PARTY_INCLUDE_DIRS})
 endif()
 
-if(Omega_h_USE_CUDA)
+if(Kokkos_ENABLE_CUDA)
   target_compile_options(omega_h PUBLIC "--expt-extended-lambda")
 endif()
 
@@ -280,9 +272,6 @@ if(Omega_h_USE_CTAGS)
 endif()
 
 function(osh_add_exe EXE_NAME)
-  if (Omega_h_USE_CUDA AND NOT Omega_h_USE_Kokkos)
-    set_source_files_properties(${EXE_NAME}.cpp PROPERTIES LANGUAGE CUDA)
-  endif()
   add_executable(${EXE_NAME} ${EXE_NAME}.cpp)
   set_property(TARGET ${EXE_NAME} PROPERTY CXX_STANDARD "17")
   set_property(TARGET ${EXE_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -798,7 +787,7 @@ set(Omega_h_HEADERS
   r3d.hpp
   )
 
-if (NOT Omega_h_USE_CUDA)
+if (NOT Kokkos_ENABLE_CUDA)
   list(APPEND Omega_h_HEADERS Omega_h_overlay.hpp)
 endif()
 

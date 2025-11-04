@@ -404,7 +404,7 @@ LOs nodes_on_closure(
 bool is_rc_tag(std::string const& name);
 
 // workaround CUDA compiler bug
-#ifdef OMEGA_H_USE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
 __host__
 #endif
     void

@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <vector>
 
-#if defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
 
 #if defined(__clang__)
 template <class... Args>
@@ -55,7 +55,7 @@ static void parallel_sort(T* b, T* e, Comp c) {
   const auto q = *space.impl_internal_space_instance()->m_queue;
   auto policy = ::oneapi::dpl::execution::make_device_policy(q);
   oneapi::dpl::sort(policy,b,e,c);
-#elif defined(OMEGA_H_USE_CUDA) || defined(OMEGA_H_USE_HIP)
+#elif defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
   auto bptr = thrust::device_ptr<T>(b);
   auto eptr = thrust::device_ptr<T>(e);
   thrust::stable_sort(bptr, eptr, c);

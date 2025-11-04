@@ -24,33 +24,15 @@ OMEGA_H_SYSTEM_HEADER
 #pragma GCC diagnostic pop
 #endif
 
-#if defined(KOKKOS_HAVE_CUDA) && !defined(OMEGA_H_USE_CUDA)
-#error "Kokkos has CUDA, please reconfigure with Omega_h_USE_CUDA=ON"
-#endif
-
 namespace Omega_h {
 
-#if defined(OMEGA_H_USE_CUDA)
-  using ExecSpace = Kokkos::Cuda;
-#elif defined(OMEGA_H_USE_HIP)
-  using ExecSpace = Kokkos::HIP;
-#elif defined(OMEGA_H_USE_SYCL)
-  using ExecSpace = Kokkos::Experimental::SYCL;
-#elif defined(OMEGA_H_USE_OpenMP)
+#if defined(OMEGA_H_USE_OpenMP)
   using ExecSpace = Kokkos::OpenMP;
 #else
   using ExecSpace = Kokkos::DefaultExecutionSpace;
 #endif
 
-#if defined(OMEGA_H_MEM_SPACE_DEVICE)
-  #if defined(OMEGA_H_USE_CUDA)
-    using Space = Kokkos::CudaSpace;
-  #elif defined(OMEGA_H_USE_HIP)
-    using Space = Kokkos::HIPSpace;
-  #elif defined(OMEGA_H_USE_SYCL)
-    using Space = Kokkos::Experimental::SYCLDeviceUSMSpace;
-  #endif
-#elif defined(OMEGA_H_MEM_SPACE_SHARED)
+#if defined(OMEGA_H_MEM_SPACE_SHARED)
   #if !defined(KOKKOS_HAS_SHARED_SPACE)
     #error Shared memory space in unavailable
   #endif
