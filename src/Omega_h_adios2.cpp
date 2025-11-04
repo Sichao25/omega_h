@@ -313,7 +313,7 @@ static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
     using T = decltype(t);
     Read<T> array;
     name = pre_name + "/"+ tagName + "/data";
-    ArrayType array_type = ArrayType::NotSpecified;
+    ArrayType array_type = ArrayType::VectorND;
     read_array_type(io, reader, name, array_type);
     read_array(io, reader, mesh, array, name);
     if(is_rc_tag(tag_name)) {

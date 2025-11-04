@@ -14,19 +14,16 @@ inline void check_tag_name(std::string const& name) {
 }
 
 enum class ArrayType {
-  NotSpecified,
   VectorND, // vector with N components
   SymmetricSquareMatrix, // symmetric matrix with dim*(dim+1)/2 components
 };
 
  const std::unordered_map<ArrayType, std::string> ArrayTypeNames = {
-    {ArrayType::NotSpecified, "NotSpecified"},
     {ArrayType::VectorND, "VectorND"},
     {ArrayType::SymmetricSquareMatrix, "SymmetricSquareMatrix"}
 };
 
 const std::unordered_map<std::string, ArrayType> NamesToArrayType = {
-    {"NotSpecified", ArrayType::NotSpecified},
     {"VectorND", ArrayType::VectorND},
     {"SymmetricSquareMatrix", ArrayType::SymmetricSquareMatrix}
 };
