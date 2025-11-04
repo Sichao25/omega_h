@@ -7,7 +7,10 @@
 #include <Omega_h_filesystem.hpp>
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_tag.hpp>
+
+#ifdef OMEGA_H_USE_ADIOS2
 #include <Omega_h_adios2.hpp>
+#endif
 
 // helper function to convert tag array types in files
 

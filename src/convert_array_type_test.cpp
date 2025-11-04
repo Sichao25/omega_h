@@ -3,7 +3,10 @@
 
 #include "Omega_h_vtk.hpp"
 #include "Omega_h_file.hpp"
+
+#ifdef OMEGA_H_USE_ADIOS2
 #include <Omega_h_adios2.hpp>
+#endif
 
 using namespace Omega_h;
 

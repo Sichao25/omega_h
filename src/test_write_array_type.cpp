@@ -6,9 +6,12 @@
 #include "Omega_h_build.hpp"
 #include "Omega_h_mesh.hpp"
 #include "Omega_h_vtk.hpp"
-#include <Omega_h_adios2.hpp>
 #include "Omega_h_file.hpp"
 #include "Omega_h_for.hpp"
+
+#ifdef OMEGA_H_USE_ADIOS2
+#include <Omega_h_adios2.hpp>
+#endif
 
 using namespace Omega_h;
 
