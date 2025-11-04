@@ -443,14 +443,17 @@ static void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::
     int32_t npairs;
     read_value(io, reader, mesh->comm(), &npairs, name, true);
 
-    Read<int32_t> gclas_dim = {};
-    Read<int32_t> gclas_id = {};
+    Read<int32_t> gclas_dim_d = {};
+    Read<int32_t> gclas_id_d = {};
 
     name=pref+"gclas/"+to_string(i)+"/dim";
-    read_array(io, reader, mesh, gclas_dim, name);
+    read_array(io, reader, mesh, gclas_dim_d, name);
 
     name=pref+"gclas/"+to_string(i)+"/id";
-    read_array(io, reader, mesh, gclas_id,name);
+    read_array(io, reader, mesh, gclas_id_d,name);
+
+    HostRead<int32_t> gclas_dim(gclas_dim_d);
+    HostRead<int32_t> gclas_id(gclas_id_d);
 
     for (int32_t j = 0; j < npairs; ++j) {
       ClassPair pair;
