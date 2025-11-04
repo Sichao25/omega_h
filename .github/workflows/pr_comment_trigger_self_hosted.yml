@@ -69,7 +69,7 @@ jobs:
           # adios2
           git clone https://github.com/ornladios/ADIOS2.git ${workDir}/ADIOS2
           adiosbdir=${workDir}/build-ADIOS2
-          cmake - S ${workDir}/ADIOS2 -B $adiosbdir \
+          cmake -S ${workDir}/ADIOS2 -B $adiosbdir \
             -DCMAKE_INSTALL_PREFIX=$adiosbdir/install \
             -DADIOS2_USE_CUDA=on \
             -DADIOS2_USE_ZFP=off

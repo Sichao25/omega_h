@@ -204,7 +204,7 @@ Reals get_element_implied_length_metrics(Mesh* mesh);
 Reals get_pure_implied_metrics(Mesh* mesh);
 Reals get_implied_metrics(Mesh* mesh);
 Reals limit_metric_gradation(Mesh* mesh, Reals values, Real max_rate,
-    Real tol = 1e-2, bool verbose = true);
+    Real tol = 1e-2, bool verbose = false);
 Reals get_complexity_per_elem(Mesh* mesh, Reals v2m);
 Reals get_nelems_per_elem(Mesh* mesh, Reals v2m);
 Real get_complexity(Mesh* mesh, Reals v2m);
