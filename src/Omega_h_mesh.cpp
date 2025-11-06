@@ -1105,11 +1105,7 @@ LOs nodes_on_closure(
   return collect_marked(nodes_are_on);
 }
 
-#ifdef KOKKOS_ENABLE_CUDA
-__host__
-#endif
-    void
-    assign(Mesh& a, Mesh const& b) {
+void assign(Mesh& a, Mesh const& b) {
   a = b;
 }
 

@@ -23,7 +23,7 @@ bob_option(Omega_h_USE_EGADS "Use EGADS from ESP for geometry" OFF)
 bob_input(EGADS_PREFIX "" PATH "EGADS (or ESP) installation directory")
 bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
-bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
+bob_option(OMEGA_H_USE_GPU_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
 bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
 bob_option(Omega_h_USE_SimDiscrete "Enable reading and creating Simmetrix Discrete models" OFF)
 bob_option(Omega_h_USE_ADIOS2 "Enable ADIOS2" OFF)
@@ -126,7 +126,6 @@ endif()
 
 bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
 bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
-bob_option(Kokkos_ENABLE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
 
 if (Kokkos_ENABLE_CUDA)
   #check for bad combos
@@ -164,7 +163,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_dwarf
     Omega_h_CHECK_BOUNDS
     Omega_h_THROW
-    Omega_h_USE_CUDA_AWARE_MPI
+    OMEGA_H_USE_GPU_AWARE_MPI
     Omega_h_USE_Gmsh
     Omega_h_IS_SHARED
    )
