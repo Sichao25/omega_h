@@ -119,9 +119,7 @@ void describe_array(std::ostream& stream, std::string const& name, Int ncomps,
   stream << "type=\"" << Traits<T>::name() << "\"";
   stream << " Name=\"" << name << "\"";
   stream << " NumberOfComponents=\"" << ncomps << "\"";
-  if (array_type != ArrayType::NotSpecified) {
-    stream << " ArrayType=\"" << ArrayTypeNames.at(array_type) << "\"";
-  }
+  stream << " ArrayType=\"" << ArrayTypeNames.at(array_type) << "\"";
   stream << " format=\"binary\"";
 }
 
@@ -288,30 +286,13 @@ void write_tag_impl<Real>(
   auto array_type = tag->array_type();
   // don't use array from "tag" b/c change_tagToMesh creates new tag.
   // VTK / ParaView expected vector fields to have 3 components
-  // regardless of whether this is a 2D mesh or not.
-  // Older version added a 3rd zero component to fields 
-  // with 2 components. with 2 components. This requirement is removed in
-  // recent versions of ParaView (at least >=6.0.0).
-  // However, we keep this behavior for backward compatibility when ArrayType is NotSpecified.
+  // regardless of whether this is a 2D mesh or not. This requirement is
+  // removed in recent versions of ParaView (at least >=6.0.0).
+  // Older versions of Omega_h (<= v10.10.0) added a 3rd zero component 
+  // to fields with 2 components.
   if (array_type == ArrayType::SymmetricSquareMatrix && ncomps != symm_ncomps(3)) {
     write_array(stream, name, symm_ncomps(3),
           resize_symms(array, space_dim, 3), compress, array_type);
-  } else if (array_type == ArrayType::NotSpecified) {
-    if (1 < space_dim && space_dim < 3) {
-      if (ncomps == space_dim) {
-        write_array(
-            stream, name, 3, resize_vectors(array, space_dim, 3), compress);
-      } else if (ncomps == symm_ncomps(space_dim)) {
-        // Likewise, ParaView has component names specially set up for
-        // 3D symmetric tensors
-        write_array(stream, name, symm_ncomps(3),
-            resize_symms(array, space_dim, 3), compress);
-      } else {
-        write_array(stream, name, ncomps, array, compress);
-      }
-    } else {
-      write_array(stream, name, ncomps, array, compress);
-    }
   } else {
     write_array(stream, name, ncomps, array, compress, array_type);
   }
@@ -351,16 +332,6 @@ void read_tag_impl<Real>(std::istream& stream, Mesh* mesh, LO size, Int ncomps,
   if (array_type == ArrayType::SymmetricSquareMatrix) {
     array = resize_symms(array, 3, mesh->dim());
     ncomps = symm_ncomps(mesh->dim());
-  } else if (array_type == ArrayType::NotSpecified) {
-    if (1 < mesh->dim() && mesh->dim() < 3) {
-      if (ncomps == 3) {
-        array = resize_vectors(array, 3, mesh->dim());
-        ncomps = mesh->dim();
-      } else if (ncomps == symm_ncomps(3)) {
-        array = resize_symms(array, 3, mesh->dim());
-        ncomps = symm_ncomps(mesh->dim());
-      }
-    }
   }
   if (is_rc_tag(name)) {
     mesh->set_rc_from_mesh_array(ent_dim, ncomps, class_ids, name, array);
@@ -376,7 +347,7 @@ static bool read_tag(std::istream& stream, Mesh* mesh, Int ent_dim,
   Omega_h_Type type = OMEGA_H_I8;
   std::string name;
   Int ncomps = -1;
-  ArrayType array_type = ArrayType::NotSpecified;
+  ArrayType array_type = ArrayType::VectorND;
   if (!read_array_start_tag(stream, &type, &name, &ncomps, &array_type)) {
     return false;
   }
@@ -677,7 +648,7 @@ void write_p_data_array(std::ostream& stream, std::string const& name, Int ncomp
 }
 
 static void write_p_data_array2(std::ostream& stream, std::string const& name,
-    Int ncomps, Int Omega_h_Type, ArrayType array_type = ArrayType::NotSpecified) {
+    Int ncomps, Int Omega_h_Type, ArrayType array_type = ArrayType::VectorND) {
   switch (Omega_h_Type) {
     case OMEGA_H_I8:
       write_p_data_array<I8>(stream, name, ncomps, array_type);
@@ -700,22 +671,6 @@ void write_p_tag(std::ostream& stream, TagBase const* tag, Int space_dim) {
              tag->ncomps() != symm_ncomps(3)) {
     write_p_data_array2(
         stream, tag->name(), symm_ncomps(3), tag->type(), array_type);
-  } else if (array_type == ArrayType::NotSpecified) {
-    if (tag->type() == OMEGA_H_REAL) {
-      if (1 < space_dim && space_dim < 3) {
-        if (tag->ncomps() == space_dim) {
-          write_p_data_array2(stream, tag->name(), 3, OMEGA_H_REAL);
-        } else if (tag->ncomps() == symm_ncomps(space_dim)) {
-          write_p_data_array2(stream, tag->name(), symm_ncomps(3), OMEGA_H_REAL);
-        } else {
-          write_p_data_array2(stream, tag->name(), tag->ncomps(), OMEGA_H_REAL);
-        }
-      } else {
-        write_p_data_array2(stream, tag->name(), tag->ncomps(), OMEGA_H_REAL);
-      }
-    } else {
-      write_p_data_array2(stream, tag->name(), tag->ncomps(), tag->type());
-    }
   } else {
     write_p_data_array2(
         stream, tag->name(), tag->ncomps(), tag->type(), array_type);
