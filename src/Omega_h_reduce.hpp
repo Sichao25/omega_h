@@ -7,20 +7,6 @@
 
 #include <Omega_h_scalar.hpp>
 #include <Omega_h_shared_alloc.hpp>
-#if defined(KOKKOS_ENABLE_CUDA)
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-#include <thrust/functional.h>
-#include <thrust/transform_reduce.h>
-#include <thrust/execution_policy.h>
-#include <cuda_runtime_api.h>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#endif
 
 namespace Omega_h {
 
@@ -40,63 +26,7 @@ typename T::value_type parallel_reduce(LO n, T f, char const* name = "") {
   return result;
 }
 
-#if defined(OMEGA_H_USE_KOKKOS) and !defined(KOKKOS_ENABLE_CUDA)
-
-template <class Iterator, class Tranform, class Result, class Op>
-Result transform_reduce(
-    Iterator first, Iterator last, Result init, Op op, Tranform transform) {
-  fprintf(stderr, "transform_reduce wrapper.  We shouldn't be here... exiting\n");
-  OMEGA_H_CHECK(false);
-  return Result();
-}
-
-#elif defined(KOKKOS_ENABLE_CUDA)
-
-template <class Op>
-Op native_op(Op const& op) {
-  return op;
-}
-template <class T>
-thrust::logical_and<T> native_op(Omega_h::logical_and<T> const&) {
-  return thrust::logical_and<T>();
-}
-template <class T>
-thrust::plus<T> native_op(Omega_h::plus<T> const&) {
-  return thrust::plus<T>();
-}
-template <class T>
-thrust::maximum<T> native_op(Omega_h::maximum<T> const&) {
-  return thrust::maximum<T>();
-}
-template <class T>
-thrust::minimum<T> native_op(Omega_h::minimum<T> const&) {
-  return thrust::minimum<T>();
-}
-#ifndef CUDART_VERSION
-#error CUDART_VERSION Undefined!
-#elif (CUDART_VERSION < 11020)
-template <class T>
-thrust::identity<T> native_op(Omega_h::identity<T> const&) {
-  return thrust::identity<T>();
-}
-#else
-template <class T>
-thrust::identity<> native_op(Omega_h::identity<T> const&) {
-  return thrust::identity<>();
-}
-#endif
-
-template <class Iterator, class Tranform, class Result, class Op>
-Result transform_reduce(
-    Iterator first, Iterator last, Result init, Op op, Tranform transform) {
-  Omega_h::entering_parallel = true;
-  auto const transform_parallel = std::move(transform);
-  Omega_h::entering_parallel = false;
-  return thrust::transform_reduce(thrust::device, first, last,
-      native_op(transform_parallel), init, native_op(op));
-}
-
-#elif defined(OMEGA_H_USE_OPENMP)
+#if defined(OMEGA_H_USE_OPENMP)
 
 template <class Iterator, class Tranform, class Result, class Op>
 Result transform_reduce(

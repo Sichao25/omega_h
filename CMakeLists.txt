@@ -88,7 +88,7 @@ set(Omega_h_USE_pybind11_DEFAULT OFF)
 bob_public_dep(pybind11)
 
 if(Omega_h_USE_Kokkos)
-  bob_option(Omega_h_USE_Kokkos_Sort "Use Kokkos sort_by_key instead of vendor (Thrust, SYCL, etc.) provided sorting APIs." OFF)
+  bob_option(Omega_h_USE_Kokkos_Sort "Use Kokkos sort_by_key instead of vendor (Thrust, SYCL, etc.) provided sorting APIs." ON)
   if(Omega_h_USE_Kokkos_Sort AND Kokkos_VERSION VERSION_LESS 4.3)
     message(SEND_ERROR "Kokkos sort_by_key requires Kokkos >= 4.3, found version ${Kokkos_VERSION}")
   endif()
@@ -131,7 +131,7 @@ if (Kokkos_ENABLE_CUDA)
   #check for bad combos
   if(Omega_h_CHECK_BOUNDS)
     message(FATAL_ERROR "Bounds checking is only supported on the host, "
-      "disable CUDA/Kokkos+CUDA or bounds checking")
+      "build Kokkos without CUDA enabled or disable bounds checking")
   endif()
 endif()
 
@@ -198,12 +198,5 @@ if(Omega_h_EXAMPLES)
   endif()
 endif()
 add_subdirectory(src)
-
-if (Kokkos_ENABLE_CUDA)
-  install(PROGRAMS
-      ${CMAKE_CURRENT_SOURCE_DIR}/bin/nvcc_wrapper
-      DESTINATION bin)
-endif()
-
 
 bob_end_package()

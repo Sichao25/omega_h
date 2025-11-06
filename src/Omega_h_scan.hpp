@@ -1,13 +1,6 @@
 #ifndef OMEGA_H_SCAN_HPP
 #define OMEGA_H_SCAN_HPP
 
-#if defined(KOKKOS_ENABLE_CUDA) && defined(__GNUC__) && (!defined(__clang__))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wduplicated-branches"
-#pragma GCC diagnostic ignored "-Wsubobject-linkage"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
 #include <Omega_h_defines.hpp>
 #include <Omega_h_profile.hpp>
 
@@ -17,22 +10,7 @@
 
 #include <Omega_h_reduce.hpp>
 
-#if defined(KOKKOS_ENABLE_CUDA)
-
-#include <thrust/execution_policy.h>
-#include <thrust/transform_scan.h>
-#include <Omega_h_malloc.hpp>
-#include <cuda_runtime_api.h>
-#ifndef CUDART_VERSION
-#error CUDART_VERSION Undefined!
-#elif (CUDART_VERSION < 11000)
-#include <thrust/system/cuda/detail/cub/device/device_scan.cuh>
-namespace cub = thrust::cuda_cub::cub;
-#else
-#include <cub/device/device_scan.cuh>
-#endif
-
-#elif defined(OMEGA_H_USE_OPENMP)
+#if defined(OMEGA_H_USE_OPENMP)
 
 #include <omp.h>
 
@@ -215,9 +193,5 @@ OutputIterator transform_inclusive_scan(InputIterator first, InputIterator last,
 
 #endif
 }  // namespace Omega_h
-
-#if defined(KOKKOS_ENABLE_CUDA) && defined(__GNUC__) && (!defined(__clang__))
-#pragma GCC diagnostic pop
-#endif
 
 #endif
