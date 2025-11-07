@@ -138,7 +138,7 @@ jobs:
           -DCMAKE_VERBOSE_MAKEFILE=on \
           -DOmega_h_USE_MPI=${{ matrix.mpi }} \
           -DOmega_h_USE_Kokkos=${{ matrix.kokkos }} \
-          -DOmega_h_Kokkos_Sort=$KOKKOS_SORT \
+          -DOmega_h_USE_Kokkos_Sort=$KOKKOS_SORT \
           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
           -DOmega_h_USE_Gmsh=ON \
           -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
