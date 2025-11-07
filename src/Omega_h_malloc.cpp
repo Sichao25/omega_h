@@ -41,7 +41,7 @@ void* maybe_pooled_device_malloc(std::size_t size) {
   if (pooling_enabled) return KokkosPool::getGlobalPool().allocate(size);
   return Kokkos::kokkos_malloc(size);
   #else
-  Omega_h_fail("Non-Kokkos pooled device malloc is not implemented\n");
+  return host_malloc(size);
   #endif
 }
 
@@ -51,7 +51,7 @@ void maybe_pooled_device_free(void* ptr, std::size_t size) {
     KokkosPool::getGlobalPool().deallocate(ptr);
   return Kokkos::kokkos_free(ptr);
   #else
-  Omega_h_fail("Non-Kokkos pooled device free is not implemented\n");
+  return host_free(ptr, size);
   #endif
 }
 
