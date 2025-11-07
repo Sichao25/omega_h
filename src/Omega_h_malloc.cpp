@@ -1,7 +1,9 @@
 #include <Omega_h_fail.hpp>
 #include <Omega_h_malloc.hpp>
 #include <Omega_h_pool.hpp>
+#ifdef OMEGA_H_USE_KOKKOS
 #include <Omega_h_pool_kokkos.hpp>
+#endif
 #include <Omega_h_profile.hpp>
 #include <cstdlib>
 
