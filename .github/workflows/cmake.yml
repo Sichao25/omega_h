@@ -25,8 +25,7 @@ jobs:
              kokkos: on
              mempool: on
              mpi: off
-             kokkos_version: 4.0.00
-             kokkos_sort: off
+             kokkos_version: 4.3.00
            #run one config with g++ and C++20
            - compiler: g++
              kokkos: on
@@ -124,11 +123,6 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/omega_h
       run: |
-          if [ -n "${{ matrix.kokkos_sort }}" ]; then
-            KOKKOS_SORT=${{ matrix.kokkos_sort }}
-          else
-            KOKKOS_SORT=${{ matrix.kokkos }}
-          fi
           export CMAKE_PREFIX_PATH="${{runner.temp }}/gmsh/install:$CMAKE_PREFIX_PATH"
           export LD_LIBRARY_PATH="${{runner.temp }}/gmsh/install/lib:$LD_LIBRARY_PATH"
           export CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/ADIOS2/build/install:$CMAKE_PREFIX_PATH"
@@ -138,7 +132,6 @@ jobs:
           -DCMAKE_VERBOSE_MAKEFILE=on \
           -DOmega_h_USE_MPI=${{ matrix.mpi }} \
           -DOmega_h_USE_Kokkos=${{ matrix.kokkos }} \
-          -DOmega_h_USE_Kokkos_Sort=$KOKKOS_SORT \
           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
           -DOmega_h_USE_Gmsh=ON \
           -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
