@@ -5,6 +5,17 @@
 #include <Omega_h_shared_alloc.hpp>
 #include <sstream>
 
+namespace {
+  void failIfKokkosEnabled(std::string func) {
+    #ifdef OMEGA_H_USE_KOKKOS
+    auto message = func + std::string(" should not be called when Kokkos is enabled. "
+        "Use SharedRef<...> if reference counting is needed or directly call "
+        "KokkosPool::getGlobalPool().allocate(...) or Kokkos::kokkos_malloc(...)\n");
+    Omega_h::fail(message.c_str());
+    #endif
+  }
+}
+
 namespace Omega_h {
 
 OMEGA_H_DLL bool entering_parallel = false;
@@ -56,7 +67,7 @@ Alloc::Alloc(std::size_t size_in, std::string&& name_in)
 }
 
 OMEGA_H_DLL Alloc::~Alloc() {
-  ::Omega_h::maybe_pooled_device_free(ptr, size);
+  ::Omega_h::maybe_pooled_host_free(ptr, size);
   auto ga = global_allocs;
   if (ga) {
     if (next == nullptr) {
@@ -74,7 +85,8 @@ OMEGA_H_DLL Alloc::~Alloc() {
 }
 
 void Alloc::init() {
-  ptr = ::Omega_h::maybe_pooled_device_malloc(size);
+  failIfKokkosEnabled(__func__);
+  ptr = ::Omega_h::maybe_pooled_host_malloc(size);
   use_count = 1;
   auto ga = global_allocs;
   if (size && (ptr == nullptr)) {
@@ -113,11 +125,13 @@ void Alloc::init() {
 }
 
 SharedAlloc::SharedAlloc(std::size_t size_in, std::string const& name_in) {
+  failIfKokkosEnabled(__func__);
   alloc = new Alloc(size_in, name_in);
   direct_ptr = alloc->ptr;
 }
 
 SharedAlloc::SharedAlloc(std::size_t size_in, std::string&& name_in) {
+  failIfKokkosEnabled(__func__);
   alloc = new Alloc(size_in, name_in);
   direct_ptr = alloc->ptr;
 }
