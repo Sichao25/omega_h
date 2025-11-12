@@ -197,6 +197,19 @@ Reals delinearize_metrics(LO nmetrics, Reals linear_metrics);
 
 Reals project_metrics(Mesh* mesh, Reals e2m);
 
+/**
+ * \brief Clamps metric tensors to enforce bounds on desired edge lengths.
+ *
+ * For each metric tensor, performs eigendecomposition and clamps the eigenvalues
+ * to ensure mesh adaptation produces edges with lengths between h_min and h_max
+ * in all directions. This prevents the mesh from becoming too fine or too coarse.
+ *
+ * \param nmetrics (In) The number of metric tensors to process (typically number of vertices)
+ * \param metrics (In) The input array of metric tensors (stored as symmetric matrices)
+ * \param h_min (In) The minimum desired edge length in physical space
+ * \param h_max (In) The maximum desired edge length in physical space
+ * \return Array of clamped metric tensors with eigenvalues in range [1/(h_max^2), 1/(h_min^2)]
+ */
 Reals clamp_metrics(LO nmetrics, Reals metrics, Real h_min, Real h_max);
 Reals get_pure_implied_isos(Mesh* mesh);
 Reals get_implied_isos(Mesh* mesh);
@@ -204,7 +217,7 @@ Reals get_element_implied_length_metrics(Mesh* mesh);
 Reals get_pure_implied_metrics(Mesh* mesh);
 Reals get_implied_metrics(Mesh* mesh);
 Reals limit_metric_gradation(Mesh* mesh, Reals values, Real max_rate,
-    Real tol = 1e-2, bool verbose = true);
+    Real tol = 1e-2, bool verbose = false);
 Reals get_complexity_per_elem(Mesh* mesh, Reals v2m);
 Reals get_nelems_per_elem(Mesh* mesh, Reals v2m);
 Real get_complexity(Mesh* mesh, Reals v2m);

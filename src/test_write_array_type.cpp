@@ -4,11 +4,14 @@
 
 #include "Omega_h_array_ops.hpp"
 #include "Omega_h_build.hpp"
-#include "Omega_h_compare.hpp"
+#include "Omega_h_mesh.hpp"
 #include "Omega_h_vtk.hpp"
-#include "Omega_h_xml_lite.hpp"
 #include "Omega_h_file.hpp"
 #include "Omega_h_for.hpp"
+
+#ifdef OMEGA_H_USE_ADIOS2
+#include <Omega_h_adios2.hpp>
+#endif
 
 using namespace Omega_h;
 
@@ -16,7 +19,7 @@ void check_tag(const Tag<Real>* tag, int flag) {
   if (flag) {
     OMEGA_H_CHECK(tag->array_type() == ArrayType::SymmetricSquareMatrix);
   } else {
-    OMEGA_H_CHECK(tag->array_type() == ArrayType::NotSpecified);
+    OMEGA_H_CHECK(tag->array_type() == ArrayType::VectorND);
   }
   OMEGA_H_CHECK(tag->ncomps() == 3);
 }
@@ -44,10 +47,9 @@ void test_binary(
   std::cout << "Binary Components: " << tag->ncomps() << std::endl;
   std::cout << "ArrayType: " << ArrayTypeNames.at(tag->array_type()) << std::endl;
   check_tag(tag, flag);
-
 }
 
-#ifdef Omega_h_USE_ADIOS2
+#ifdef OMEGA_H_USE_ADIOS2
 void test_adios2(
   Mesh* mesh, Library* lib, const std::string& tag_name, int flag) {
   printf("Testing ADIOS2\n");
@@ -60,7 +62,7 @@ void test_adios2(
 }
 #endif
 
-#ifdef Omega_h_USE_libMeshb
+#ifdef OMEGA_H_USE_LIBMESHB
 void test_meshb(
   Mesh* mesh, Library* lib, const std::string& tag_name, int flag) {
   printf("Testing Meshb\n");
@@ -98,7 +100,7 @@ int main(int argc, char** argv) {
   mesh.set_parting(OMEGA_H_GHOSTED, 0);
 
   int input_array_type_flag = atoi(argv[1]);
-  auto array_type_flag = ArrayType::NotSpecified;
+  auto array_type_flag = ArrayType::VectorND;
   if (input_array_type_flag) {
     array_type_flag = ArrayType::SymmetricSquareMatrix;
   }
@@ -129,10 +131,10 @@ int main(int argc, char** argv) {
   } else {
     test_vtk(&mesh, world, tag_name, input_array_type_flag);
     test_binary(&mesh, world, tag_name, input_array_type_flag);
-#ifdef Omega_h_USE_ADIOS2
+#ifdef OMEGA_H_USE_ADIOS2
     test_adios2(&mesh, &lib, tag_name, input_array_type_flag);
 #endif
-#ifdef Omega_h_USE_libMeshb
+#ifdef OMEGA_H_USE_LIBMESHB
     test_meshb(&mesh, &lib, tag_name, input_array_type_flag);
 #endif
   }

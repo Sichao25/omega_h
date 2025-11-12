@@ -73,7 +73,7 @@ static void read_value(adios2::IO &io, adios2::Engine &reader,
 
 template <typename T>
 static void write_array(adios2::IO &io, adios2::Engine &writer, Mesh* mesh, 
-		Read<T> array, int ncomp, std::string &name, ArrayType array_type=ArrayType::NotSpecified)
+		Read<T> array, int ncomp, std::string &name, ArrayType array_type=ArrayType::VectorND)
 {
   long unsigned int comm_size = mesh->comm()->size();
   long unsigned int rank = mesh->comm()->rank();
@@ -90,13 +90,11 @@ static void write_array(adios2::IO &io, adios2::Engine &writer, Mesh* mesh,
   // To avoid narrowing conversion warning.
   size_t n_comp = static_cast <size_t>(ncomp); 
   
-  if (array_type != ArrayType::NotSpecified){
-    std::string arrayTypeName = ArrayTypeNames.at(array_type);
-    std::string meta_name = name + "/ArrayType";
+  std::string arrayTypeName = ArrayTypeNames.at(array_type);
+  std::string meta_name = name + "/ArrayType";
 
-    adios2::Variable<std::string> ArrayTypeMeta = io.DefineVariable<std::string>(meta_name);
-    writer.Put(ArrayTypeMeta, arrayTypeName, adios2::Mode::Sync);
-  }
+  adios2::Variable<std::string> ArrayTypeMeta = io.DefineVariable<std::string>(meta_name);
+  writer.Put(ArrayTypeMeta, arrayTypeName, adios2::Mode::Sync);
  
   // This implementation only works in serial. Implementation to deal with
   // parallel cases will be done in future. (04-23-2025)
@@ -208,7 +206,7 @@ static void read_meta(adios2::IO &io, adios2::Engine &reader, Mesh* mesh, std::s
   {
     Omega_h_fail("Mesh was written with Omegah to adios2 writer version %d.\n"
              "Latest adios2 to Omegah reader version is %d. This may cause unwanted\n"
-             "behavior including setting ArrayTypes to NotSpecified. Make sure\n"
+             "behavior including setting ArrayTypes to VectorND. Make sure\n"
              "to update meshes in adios2 with latest writer version %d.\n",
              writer_version, reader_version, reader_version);
   }
@@ -315,7 +313,7 @@ static void read_tag(adios2::IO &io, adios2::Engine &reader, Mesh* mesh,
     using T = decltype(t);
     Read<T> array;
     name = pre_name + "/"+ tagName + "/data";
-    ArrayType array_type = ArrayType::NotSpecified;
+    ArrayType array_type = ArrayType::VectorND;
     read_array_type(io, reader, name, array_type);
     read_array(io, reader, mesh, array, name);
     if(is_rc_tag(tag_name)) {
@@ -443,14 +441,17 @@ static void read_sets(adios2::IO & io, adios2::Engine &reader, Mesh* mesh, std::
     int32_t npairs;
     read_value(io, reader, mesh->comm(), &npairs, name, true);
 
-    Read<int32_t> gclas_dim = {};
-    Read<int32_t> gclas_id = {};
+    Read<int32_t> gclas_dim_d = {};
+    Read<int32_t> gclas_id_d = {};
 
     name=pref+"gclas/"+to_string(i)+"/dim";
-    read_array(io, reader, mesh, gclas_dim, name);
+    read_array(io, reader, mesh, gclas_dim_d, name);
 
     name=pref+"gclas/"+to_string(i)+"/id";
-    read_array(io, reader, mesh, gclas_id,name);
+    read_array(io, reader, mesh, gclas_id_d,name);
+
+    HostRead<int32_t> gclas_dim(gclas_dim_d);
+    HostRead<int32_t> gclas_id(gclas_id_d);
 
     for (int32_t j = 0; j < npairs; ++j) {
       ClassPair pair;
