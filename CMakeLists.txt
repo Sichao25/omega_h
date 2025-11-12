@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.0...${CMAKE_VERSION})
 
-project(Omega_h VERSION 10.11.0 LANGUAGES CXX)
+project(Omega_h VERSION 11.0.0 LANGUAGES CXX)
 set(Omega_h_USE_STK_DEFAULT OFF)
 option(Omega_h_USE_STK "Whether to build the STK interface" ${Omega_h_USE_STK_DEFAULT})
 
@@ -23,7 +23,7 @@ bob_option(Omega_h_USE_EGADS "Use EGADS from ESP for geometry" OFF)
 bob_input(EGADS_PREFIX "" PATH "EGADS (or ESP) installation directory")
 bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
-bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
+bob_option(OMEGA_H_USE_GPU_AWARE_MPI "Assume MPI is GPU-aware, make use of that" OFF)
 bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
 bob_option(Omega_h_USE_SimDiscrete "Enable reading and creating Simmetrix Discrete models" OFF)
 bob_option(Omega_h_USE_ADIOS2 "Enable ADIOS2" OFF)
@@ -88,12 +88,9 @@ set(Omega_h_USE_pybind11_DEFAULT OFF)
 bob_public_dep(pybind11)
 
 if(Omega_h_USE_Kokkos)
-  bob_option(Omega_h_USE_Kokkos_Sort "Use Kokkos sort_by_key instead of vendor (Thrust, SYCL, etc.) provided sorting APIs." OFF)
+  bob_option(Omega_h_USE_Kokkos_Sort "Use Kokkos sort_by_key instead of vendor (Thrust, SYCL, etc.) provided sorting APIs." ON)
   if(Omega_h_USE_Kokkos_Sort AND Kokkos_VERSION VERSION_LESS 4.3)
     message(SEND_ERROR "Kokkos sort_by_key requires Kokkos >= 4.3, found version ${Kokkos_VERSION}")
-  endif()
-  if ("CUDA" IN_LIST Kokkos_DEVICES)
-      bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "ON")
   endif()
   if ("OPENMP" IN_LIST Kokkos_DEVICES)
       bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "ON")
@@ -101,10 +98,7 @@ if(Omega_h_USE_Kokkos)
   if ("SYCL" IN_LIST Kokkos_DEVICES)
       bob_option(Omega_h_USE_SYCL "Whether to use SYCL" "ON")
   endif()
-  if ("HIP" IN_LIST Kokkos_DEVICES)
-    bob_option(Omega_h_USE_HIP "Whether to use HIP" "ON")
-  endif()
-  if (Omega_h_USE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
+  if (Kokkos_ENABLE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
     message(FATAL_ERROR
             "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
   endif()
@@ -112,7 +106,7 @@ endif()
 
 bob_option(Omega_h_MEM_SPACE_SHARED "Whether to use shared memory space" OFF)
 bob_option(Omega_h_MEM_SPACE_HOSTPINNED "Whether to use host pinned memory space" OFF)
-if ((Omega_h_USE_CUDA OR Omega_h_USE_HIP OR Omega_h_USE_SYCL) AND NOT (Omega_h_MEM_SPACE_SHARED OR Omega_h_MEM_SPACE_HOSTPINNED))
+if ((Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP OR Kokkos_ENABLE_SYCL) AND NOT (Omega_h_MEM_SPACE_SHARED OR Omega_h_MEM_SPACE_HOSTPINNED))
   bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" ON)
 else()
   bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" OFF)
@@ -126,18 +120,12 @@ endif()
 
 bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
 bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
-bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
 
-if (Omega_h_USE_CUDA)
-  enable_language(CUDA)
-  #check for versions of cuda/thrust that dont't work with omegah
-  if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.4)
-    message(FATAL_ERROR "CUDA >= 11.4 is required for Omega_h")
-  endif()
+if (Kokkos_ENABLE_CUDA)
   #check for bad combos
   if(Omega_h_CHECK_BOUNDS)
     message(FATAL_ERROR "Bounds checking is only supported on the host, "
-      "disable CUDA/Kokkos+CUDA or bounds checking")
+      "build Kokkos without CUDA enabled or disable bounds checking")
   endif()
 endif()
 
@@ -153,7 +141,6 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_Kokkos
     Omega_h_USE_Kokkos_Sort
     Omega_h_USE_OpenMP
-    Omega_h_USE_CUDA
     Omega_h_USE_SYCL
     Omega_h_USE_HIP
     Omega_h_MEM_SPACE_DEVICE
@@ -170,7 +157,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_dwarf
     Omega_h_CHECK_BOUNDS
     Omega_h_THROW
-    Omega_h_USE_CUDA_AWARE_MPI
+    OMEGA_H_USE_GPU_AWARE_MPI
     Omega_h_USE_Gmsh
     Omega_h_IS_SHARED
    )
@@ -205,12 +192,5 @@ if(Omega_h_EXAMPLES)
   endif()
 endif()
 add_subdirectory(src)
-
-if (Omega_h_USE_CUDA)
-  install(PROGRAMS
-      ${CMAKE_CURRENT_SOURCE_DIR}/bin/nvcc_wrapper
-      DESTINATION bin)
-endif()
-
 
 bob_end_package()

@@ -5,8 +5,6 @@
 
 namespace Omega_h {
 
-void* device_malloc(std::size_t size);
-void device_free(void* ptr, std::size_t size);
 void* host_malloc(std::size_t size);
 void host_free(void* ptr, std::size_t size);
 
@@ -15,8 +13,6 @@ void disable_pooling();
 
 bool is_pooling_enabled();
 
-void* maybe_pooled_device_malloc(std::size_t size);
-void maybe_pooled_device_free(void* ptr, std::size_t size);
 void* maybe_pooled_host_malloc(std::size_t size);
 void maybe_pooled_host_free(void* ptr, std::size_t size);
 }  // namespace Omega_h

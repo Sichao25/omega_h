@@ -403,12 +403,7 @@ LOs nodes_on_closure(
 
 bool is_rc_tag(std::string const& name);
 
-// workaround CUDA compiler bug
-#ifdef OMEGA_H_USE_CUDA
-__host__
-#endif
-    void
-    assign(Mesh& a, Mesh const& b);
+void assign(Mesh& a, Mesh const& b);
 
 #define OMEGA_H_EXPL_INST_DECL(T)                                              \
   extern template Tag<T> const* Mesh::get_tag<T>(                              \

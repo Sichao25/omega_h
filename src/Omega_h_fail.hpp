@@ -44,18 +44,6 @@ void fail(char const* format, ...);
 #  else
 #    define OMEGA_H_CHECK(cond) assert(cond)
 #  endif
-#elif defined(OMEGA_H_USE_CUDA) && (defined(__clang__) || defined(_MSC_VER))
-#  if defined(NDEBUG)
-#    define OMEGA_H_CHECK(cond) static_cast<void>(cond)
-#  else
-#    define OMEGA_H_CHECK(cond) assert(static_cast<int>(static_cast<bool>(cond)))
-#  endif
-#elif defined(__CUDA_ARCH__)
-#  if defined(NDEBUG)
-#    define OMEGA_H_CHECK(cond) static_cast<void>(cond)
-#  else
-#    define OMEGA_H_CHECK(cond) assert(static_cast<int>(static_cast<bool>(cond)))
-#  endif
 #elif defined(OMEGA_H_USE_KOKKOS) && defined(SYCL_LANGUAGE_VERSION) && defined (__INTEL_LLVM_COMPILER)
 #  if defined(NDEBUG)
 #    define OMEGA_H_CHECK(cond) static_cast<void>(cond)

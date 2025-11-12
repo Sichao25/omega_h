@@ -19,7 +19,7 @@ extern bool dbg_print_global;
 #ifdef OMEGA_H_DBG
 
 namespace Omega_h {
-#ifdef OMEGA_H_USE_CUDA
+#ifdef KOKKOS_ENABLE_CUDA
 OMEGA_H_INLINE const char* proc() { return ""; }
 OMEGA_H_INLINE const char* rank() { return ""; }
 OMEGA_H_INLINE const char* size() { return ""; }
