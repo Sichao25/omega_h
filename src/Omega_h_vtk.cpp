@@ -144,7 +144,11 @@ static bool read_array_start_tag(std::istream& stream, Omega_h_Type* type_out,
   OMEGA_H_CHECK(st.attribs["format"] == "binary");
   if (st.attribs.count("ArrayType")) {
     auto at_name = st.attribs["ArrayType"];
-    *array_type = NamesToArrayType.at(at_name);
+    try {
+      *array_type = NamesToArrayType.at(at_name);
+    } catch (std::out_of_range&) {
+      *array_type = ArrayType::VectorND;
+    }
   }
   return true;
 }
