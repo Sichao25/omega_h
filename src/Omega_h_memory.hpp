@@ -14,7 +14,7 @@ public:
   explicit SharedRef(Args&&... args)
 #if defined(OMEGA_H_COMPILING_FOR_HOST)
       : ptr_(new T(std::forward<Args>(args)...)) {
-    auto [itr, inserted] = refCount_.insert(std::make_pair(ptr_, 1));
+    [[maybe_unused]] auto [itr, inserted] = refCount_.insert(std::make_pair(ptr_, 1));
     assert(inserted);
   }
 #else
