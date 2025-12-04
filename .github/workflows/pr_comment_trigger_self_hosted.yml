@@ -277,7 +277,7 @@ jobs:
           workDir=$OMEGAH_WORK_DIR
 
           # omegah
-          bdir=${workDir}/build-omegah
+          bdir=${workDir}/build-omegah-warning-as-errors
           cmake -S omegah_${{ github.event.issue.number }} -B $bdir \
             -DCMAKE_INSTALL_PREFIX=$bdir/install \
             -DCMAKE_BUILD_TYPE=Release \
