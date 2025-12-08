@@ -56,19 +56,26 @@ int main(int argc, char** argv) {
       auto nbvert = vert_rc_ids.size();
       auto edge_rc_ids = (mesh.ask_revClass(1)).ab2b;
       auto nbedge = edge_rc_ids.size();
-      auto face_rc_ids = (mesh.ask_revClass(2)).ab2b;
-      auto nbface = face_rc_ids.size();
-      auto reg_rc_ids = (mesh.ask_revClass(3)).ab2b;
-      auto nbreg = reg_rc_ids.size();
 
       Omega_h::Write<Omega_h::Real> vals_v (nbvert, 100);
       Omega_h::Write<Omega_h::Real> vals_e (nbedge, 100);
-      Omega_h::Write<Omega_h::Real> vals_f (nbface, 100);
-      Omega_h::Write<Omega_h::Real> vals_r (nbreg, 100);
       mesh.add_rcField<Omega_h::Real> (0, "field", 1, Omega_h::Reals(vals_v));
       mesh.add_rcField<Omega_h::Real> (1, "field", 1, Omega_h::Reals(vals_e));
-      mesh.add_rcField<Omega_h::Real> (2, "field", 1, Omega_h::Reals(vals_f));
-      mesh.add_rcField<Omega_h::Real> (3, "field", 1, Omega_h::Reals(vals_r));
+
+      if( mesh.dim() >= 2 ) {
+        auto face_rc_ids = (mesh.ask_revClass(2)).ab2b;
+        auto nbface = face_rc_ids.size();
+        Omega_h::Write<Omega_h::Real> vals_f (nbface, 100);
+        mesh.add_rcField<Omega_h::Real> (2, "field", 1, Omega_h::Reals(vals_f));
+      }
+
+      if( mesh.dim() == 3 ) {
+        auto reg_rc_ids = (mesh.ask_revClass(3)).ab2b;
+        auto nbreg = reg_rc_ids.size();
+        Omega_h::Write<Omega_h::Real> vals_r (nbreg, 100);
+        mesh.add_rcField<Omega_h::Real> (3, "field", 1, Omega_h::Reals(vals_r));
+      }
+
       add_rcField_transferMap (&opts, "field", OMEGA_H_INHERIT);
 
       while (double(nelems) < desired_group_nelems) {
