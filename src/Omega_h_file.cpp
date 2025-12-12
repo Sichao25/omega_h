@@ -327,7 +327,11 @@ static void read_tag(std::istream& stream, Mesh* mesh, Int d,
   if (version > 10) {
     std::string array_type_name;
     read(stream, array_type_name, needs_swapping);
-    array_type = NamesToArrayType.at(array_type_name);
+    try {
+      array_type = NamesToArrayType.at(array_type_name);
+    } catch (std::out_of_range&) {
+      // Key not found - use default ArrayType::VectorND (already set)
+    }
   }
   //TODO: read class id info for rc tag to file
   Read<I32> class_ids = {};

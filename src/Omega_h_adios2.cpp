@@ -113,7 +113,11 @@ static void read_array_type(adios2::IO &io, adios2::Engine &reader,
   {
     std::string arrayTypeName;
     reader.Get(ArrayTypeMeta, arrayTypeName, adios2::Mode::Sync);
-    array_type = NamesToArrayType.at(arrayTypeName);
+    try {
+      array_type = NamesToArrayType.at(arrayTypeName);
+    } catch (std::out_of_range&) {
+      array_type = ArrayType::VectorND;
+    }
   }
 }
 
