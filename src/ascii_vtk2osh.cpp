@@ -159,7 +159,6 @@ static void build(Omega_h::Mesh* mesh, std::string vtk_path) {
   auto ev2v = get_ev2v(file);
   eat_elem_types(file);
   auto mat = get_elem_mat_ids(file);
-  //OMEGA_H_ALWAYS_CHECK(file.eof());
   build_mesh(mesh, coords, ev2v);
   classify(mesh, mat);
   Omega_h::reorder_by_hilbert(mesh);
