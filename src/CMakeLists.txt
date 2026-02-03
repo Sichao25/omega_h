@@ -749,6 +749,7 @@ set(Omega_h_HEADERS
   Omega_h_hypercube.hpp
   Omega_h_indset.hpp
   Omega_h_indset_inline.hpp
+  Omega_h_inertia.hpp
   Omega_h_input.hpp
   Omega_h_int128.hpp
   Omega_h_int_iterator.hpp
