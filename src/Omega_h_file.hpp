@@ -96,6 +96,41 @@ enum ClassifyWith {
 int open(filesystem::path const& path, bool verbose = false);
 void close(int exodus_file);
 int get_num_time_steps(int exodus_file);
+
+/** @brief Read an Exodus II file into an Omega_h::Mesh and assign geometric classification.
+ *
+ * Builds the Omega_h::Mesh from element blocks and derives entity classification from
+ * those blocks plus optional node sets and/or side sets, controlled by the
+ * @p classify_with bitmask (bitwise-OR of @c NODE_SETS and/or @c SIDE_SETS).
+ *
+ * Classification is assigned as follows:
+ *   - Elements (dim d): each element's class_id is set to its element block ID
+ *     and class_dim is set to d.
+ *   - Sides (dim d-1): boundary sides are initially given class_id=0.
+ *     - Side sets: each (element, local-side-index) entry provided by Exodus
+ *       identifies a side, which is assigned class_id equal to the side set ID
+ *       and class_dim = d-1.
+ *     - Node sets: a side is part of the node set if and only if both of its vertices
+ *       are in the set (via upward adjacency, see mark_up_all). Those sides are assigned
+ *       class_id = node_set_id + max_side_set_id (offset to avoid collision
+ *       with side set IDs) and class_dim = d-1.
+ *   - Vertices (dim 0): never classified directly from sets. Classification is
+ *     derived by finalize_classification(), which projects downward from sides:
+ *     a vertex shared by sides of the same model entity inherits that entity's
+ *     classification; a vertex at the junction of sides belonging to different
+ *     model entities is classified on a lower-dimensional model entity (e.g.,
+ *     a model vertex, with class_id=-1).
+ *
+ * @warning Overlapping sets are not supported. If a side (or the sides implied
+ *   by a node set) appears in more than one set, the last write wins and
+ *   earlier classification is silently overwritten.
+ *
+ * @param[in] file          Open Exodus file handle.
+ * @param[in] mesh          Output mesh; populated and classified by this call.
+ * @param[in] verbose       If true, print progress information to stdout.
+ * @param[in] classify_with Bitmask selecting classification sources:
+ *                          NODE_SETS, SIDE_SETS, or both.
+ */
 void read_mesh(int exodus_file, Mesh* mesh, bool verbose = false,
     int classify_with = NODE_SETS | SIDE_SETS);
 void read_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
