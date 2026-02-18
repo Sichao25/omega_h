@@ -18,6 +18,11 @@
 #include "MeshSim.h"
 #endif
 
+/** @file
+ * Interfaces for file I/O with other libraries and file formats.
+ */
+
+/** @namespace Omega_h Top-level namespace */
 namespace Omega_h {
 
 OMEGA_H_DLL Mesh read_mesh_file(filesystem::path const& path, CommPtr comm);
@@ -36,6 +41,7 @@ void write_sol(Mesh* mesh, std::string const& filepath,
 #endif
 
 #ifdef OMEGA_H_USE_SIMMODSUITE
+/** @namespace Omega_h::meshsim Functions supporting Simmetrix SimModSuite file I/O*/
 namespace meshsim {
 /**
  * Return if the mesh is mixed or mono topology
@@ -88,6 +94,7 @@ void matchRead(filesystem::path const& mesh_fname, filesystem::path const& model
 #endif
 
 #ifdef OMEGA_H_USE_SEACASEXODUS
+/** @namespace Omega_h::exodus Functions supporting Exodus II file I/O */
 namespace exodus {
 enum ClassifyWith {
   NODE_SETS = 0x1,
@@ -97,7 +104,7 @@ int open(filesystem::path const& path, bool verbose = false);
 void close(int exodus_file);
 int get_num_time_steps(int exodus_file);
 
-/** @brief Read an Exodus II file into an Omega_h::Mesh and assign geometric classification.
+/** @brief %Read an Exodus II file into an Omega_h::Mesh and assign geometric classification.
  *
  * Builds the Omega_h::Mesh from element blocks and derives entity classification from
  * those blocks plus optional node sets and/or side sets, controlled by the
@@ -130,8 +137,8 @@ int get_num_time_steps(int exodus_file);
  *   by a node set) appears in more than one set, the last write wins and
  *   earlier classification is silently overwritten.
  *
- * @param[in] file          Open Exodus file handle.
- * @param[in] mesh          Output mesh; populated and classified by this call.
+ * @param[in] exodus_file          Open Exodus file handle.
+ * @param[in out] mesh          Output mesh; populated and classified by this call.
  * @param[in] verbose       If true, print progress information to stdout.
  * @param[in] classify_with Bitmask selecting classification sources:
  *                          NODE_SETS, SIDE_SETS, or both.
