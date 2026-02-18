@@ -128,7 +128,7 @@ int get_num_time_steps(int exodus_file);
  *     model entities is classified on a lower-dimensional model entity (e.g.,
  *     a model vertex, with class_id=-1).
  *
- * Node set, side set, and element block names are recorded in mesh->class_sets
+ * Node set, side set, and element block names are recorded in Omega_h::Mesh::class_sets
  *   map (keyed by name, paired with their classification dimension and ID), and
  *   optionally written to the .osh file, for later retrieval when writing back
  *   to Exodus or another format.
