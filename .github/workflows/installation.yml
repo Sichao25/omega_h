@@ -109,13 +109,12 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=install \
             -DOmega_h_USE_MPI=on \
             -DOmega_h_USE_Kokkos=on \
-            -DOmega_h_USE_CUDA=off \
             -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
             -DOmega_h_USE_Gmsh=off \
             -DOmega_h_USE_OpenMP=OFF \
             -DCMAKE_CXX_EXTENSIONS=OFF
-           cmake --build build-omega_h -j 8
+           cmake --build . -j 8 --target install
     
     
