@@ -66,7 +66,7 @@ jobs:
       run: |
            mkdir build
            cd build
-           cmake . \
+           cmake .. \
             -Bbuild \
             -DENABLE_BUILD_DYNAMIC=1 \
             -DCMAKE_INSTALL_PREFIX=install \
@@ -115,9 +115,6 @@ jobs:
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
             -DOmega_h_USE_Gmsh=off \
-            -DOmega_h_USE_SEACASExodus=on \
-            -DSEACASExodus_PREFIX=$PWD/build-trilinos/install \
-            -DTrilinos_prefix=$PWD/build-trilinos/install \
             -DOmega_h_USE_OpenMP=OFF \
             -DCMAKE_CXX_EXTENSIONS=OFF
            cmake --build build-omega_h -j 8
