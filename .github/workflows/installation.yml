@@ -1,0 +1,125 @@
+name: CMake test matrix
+on:
+  push:
+    branches: [ master, yus/workflow ]
+  pull_request:
+    branches: [ master, yus/workflow ]
+jobs:
+  build:
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        compiler: [g++]
+          
+    env:
+      CXX: ${{matrix.compiler}}
+      MPICH_CXX: ${{matrix.compiler}}
+      CCACHE_DIR: ${{github.workspace}}/.ccache
+      CCACHE_BASEDIR: ${{github.workspace}}
+      CCACHE_COMPRESS: true
+      CCACHE_MAXSIZE: 100M
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: omega_h
+
+    - name: install mpich
+      run: |
+           sudo apt update
+           sudo apt install mpich
+
+    - name: setup ccache
+      id: setup-ccache
+      run: |
+        sudo apt-get install ccache
+        ccache -p # Print ccache config
+        echo timestamp=$(date -u '+%Y-%m-%dT%T') >> "$GITHUB_OUTPUT"
+
+    - name: ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{github.workspace}}/.ccache
+        key: "${{matrix.compiler}}-\
+          ccache-${{steps.setup-ccache.outputs.timestamp}}"
+        restore-keys: "${{matrix.compiler}}-ccache-"
+
+    - name: Clear ccache statistics
+      run: ccache -z
+
+    - name: clone gmsh
+      working-directory: ${{runner.temp }}
+      run: |
+           git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
+    
+    - name: cache gmsh
+      uses: actions/cache@v3
+      with:
+        path: ${{runner.temp}}/gmsh
+        key: build-gmsh-${{ matrix.compiler }}
+    
+    - name: build and install gmsh
+      working-directory: ${{runner.temp}}/gmsh
+      run: |
+           mkdir build
+           cd build
+           cmake . \
+            -Bbuild \
+            -DENABLE_BUILD_DYNAMIC=1 \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DENABLE_BUILD_LIB=ON \
+            -DENABLE_BUILD_SHARED=ON
+           cmake --build build -j 4 --target install
+    
+    - name: clone Kokkos
+      uses: actions/checkout@v4
+      with:
+        repository: kokkos/kokkos
+        ref: 5.0.00
+    
+    - name: cache kokkos
+      uses: actions/cache@v3
+      with:
+        path: kokkos
+        key: build-kokkos-${{ matrix.compiler }}
+
+    - name: build and install kokkos
+      working-directory: kokkos
+      run: |
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DKokkos_ENABLE_CUDA=OFF \
+            -DENABLE_BUILD_SHARED=ON
+           cmake --build . -j 4 --target install
+    
+    - name: build and install omega_h
+      working-directory: omega_h
+      run: |
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE="Release" \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DOmega_h_USE_MPI=on \
+            -DOmega_h_USE_Kokkos=on \
+            -Omega_h_USE_CUDA=off \
+            -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
+            -DBUILD_TESTING=off \
+            -DBUILD_SHARED_LIBS=on \
+            -DOmega_h_USE_Gmsh=off \
+            -DOmega_h_USE_SEACASExodus=on \
+            -DSEACASExodus_PREFIX=$PWD/build-trilinos/install \
+            -DTrilinos_prefix=$PWD/build-trilinos/install \
+            -DOmega_h_USE_OpenMP=OFF \
+            -DCMAKE_CXX_EXTENSIONS=OFF
+           cmake --build build-omega_h -j 8
+    
+    
