@@ -77,7 +77,7 @@ jobs:
     - name: clone Kokkos
       working-directory: ${{runner.temp }}
       run: |
-           git clone --branch 5.0.00 https://github.com/kokkos/kokkos.git kokkos
+           git clone --branch 5.0.0 https://github.com/kokkos/kokkos.git kokkos
     
     - name: cache kokkos
       uses: actions/cache@v3
