@@ -109,6 +109,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=install \
             -DOmega_h_USE_MPI=on \
             -DOmega_h_USE_Kokkos=on \
+            -DENABLE_BUILD_SHARED=ON \
             -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
