@@ -75,19 +75,18 @@ jobs:
            cmake --build build -j 4 --target install
     
     - name: clone Kokkos
-      uses: actions/checkout@v4
-      with:
-        repository: kokkos/kokkos
-        ref: 5.0.00
+      working-directory: ${{runner.temp }}
+      run: |
+           git clone --branch 5.0.00 https://github.com/kokkos/kokkos.git kokkos
     
     - name: cache kokkos
       uses: actions/cache@v3
       with:
-        path: kokkos
+        path: ${{runner.temp}}/kokkos
         key: build-kokkos-${{ matrix.compiler }}
 
     - name: build and install kokkos
-      working-directory: kokkos
+      working-directory: ${{runner.temp }}/kokkos
       run: |
            mkdir build
            cd build
