@@ -109,7 +109,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=install \
             -DOmega_h_USE_MPI=on \
             -DOmega_h_USE_Kokkos=on \
-            -Omega_h_USE_CUDA=off \
+            -DOmega_h_USE_CUDA=off \
             -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
