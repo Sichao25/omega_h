@@ -198,7 +198,7 @@ jobs:
     - name: build and install omega_h
       working-directory: omega_h
       run: |
-           ls ${{runner.temp}}/adios2/build/install/lib/cmake/ADIOS2
+           ls ${{runner.temp}}/adios2/build/install/lib/cmake/adios2
            ls ${{runner.temp}}/adios2/build/install
            ls ${{runner.temp}}/adios2/build/install/include
            mkdir build
@@ -214,7 +214,7 @@ jobs:
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
             -DOmega_h_USE_ADIOS2=ON \
-            -DADIOS2_DIR=${{runner.temp}}/adios2/build/install/lib/cmake/ADIOS2 \
+            -DADIOS2_DIR=${{runner.temp}}/adios2/build/install/lib/cmake/adios2 \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
             -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so \
