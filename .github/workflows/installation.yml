@@ -92,13 +92,14 @@ jobs:
 
     - name: build and install libMeshb
       if: steps.cache-libmeshb.outputs.cache-hit != 'true'
-      working-directory: ${{runner.temp }}
+      working-directory: ${{runner.temp }}/libmeshb
       run: |
-           cmake -S libmeshb -B build-libmeshb \
-            -DCMAKE_INSTALL_PREFIX=${{runner.temp}}/libmeshb/install \
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_INSTALL_PREFIX=install \
             -DBUILD_SHARED_LIBS=ON
-           cmake --build build-libmeshb -j 4 --target install
-           mv libmeshb ${{runner.temp}}/libmeshb/source
+           cmake --build . -j 4 --target install
     
     - name: cache kokkos
       id: cache-kokkos
@@ -142,10 +143,12 @@ jobs:
 
     - name: build and install Trilinos
       if: steps.cache-trilinos.outputs.cache-hit != 'true'
-      working-directory: ${{runner.temp }}
+      working-directory: ${{runner.temp }}/trilinos
       run: |
-           cmake -S trilinos -B build-trilinos \
-            -DCMAKE_INSTALL_PREFIX=${{runner.temp}}/trilinos/install \
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_INSTALL_PREFIX=install \
             -DBUILD_SHARED_LIBS:BOOL=ON \
             -DTPL_ENABLE_MPI:BOOL=ON \
             -DCMAKE_CXX_COMPILER:FILEPATH=mpicxx \
@@ -156,8 +159,7 @@ jobs:
             -DTrilinos_ENABLE_SEACAS:BOOL=ON \
             -DTrilinos_ENABLE_SEACASExodus:BOOL=ON \
             -DTrilinos_ENABLE_Kokkos:BOOL=ON
-           cmake --build build-trilinos -j 4 --target install
-           mv trilinos ${{runner.temp}}/trilinos/source
+           cmake --build . -j 4 --target install
 
     - name: cache ADIOS2
       id: cache-adios2
@@ -174,17 +176,18 @@ jobs:
 
     - name: build and install ADIOS2
       if: steps.cache-adios2.outputs.cache-hit != 'true'
-      working-directory: ${{runner.temp }}
+      working-directory: ${{runner.temp }}/adios2
       run: |
-           cmake -S adios2 -B build-adios2 \
-            -DCMAKE_INSTALL_PREFIX=${{runner.temp}}/adios2/install \
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_INSTALL_PREFIX=install \
             -DADIOS2_USE_CUDA=OFF \
             -DCMAKE_CXX_COMPILER=mpicxx \
             -DCMAKE_C_COMPILER=mpicc \
             -DCMAKE_BUILD_TYPE=Release \
             -DADIOS2_USE_ZFP=OFF
-           cmake --build build-adios2 -j 4 --target install
-           mv adios2 ${{runner.temp}}/adios2/source
+           cmake --build . -j 4 --target install
 
     - name: build and install omega_h
       working-directory: omega_h
@@ -207,7 +210,7 @@ jobs:
             -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so.4.14.2 \
             -DGmsh_PREFIX=${{runner.temp}}/gmsh/build/install \
             -DOmega_h_USE_libMeshb=on \
-            -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/install \
+            -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
             -DOmega_h_USE_OpenMP=OFF \
             -DCMAKE_CXX_EXTENSIONS=OFF
            cmake --build . -j 8 --target install
