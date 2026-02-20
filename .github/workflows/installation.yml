@@ -197,9 +197,6 @@ jobs:
     - name: build and install omega_h
       working-directory: omega_h
       run: |
-          ls ${{runner.temp}}/gmsh/build/install
-          ls ${{runner.temp}}/gmsh/build/install/lib
-          ls ${{runner.temp}}/gmsh/build/install/include
            mkdir build
            cd build
            cmake .. \
@@ -215,8 +212,7 @@ jobs:
             -DOmega_h_USE_ADIOS2=ON \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
-            -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so.4.14.1 \
-            -DGmsh_PREFIX=${{runner.temp}}/gmsh/build/install \
+            -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so \
             -DOmega_h_USE_libMeshb=on \
             -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
             -DOmega_h_USE_OpenMP=OFF \
