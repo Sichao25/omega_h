@@ -195,41 +195,41 @@ jobs:
            echo "LD_LIBRARY_PATH=${{runner.temp}}/gmsh/build/install/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
            export CMAKE_PREFIX_PATH=${{runner.temp}}/adios2/build/install:$CMAKE_PREFIX_PATH
 
-    # - name: build and install omega_h
-    #   working-directory: omega_h
-    #   run: |
-    #        mkdir build
-    #        cd build
-    #        cmake .. \
-    #         -DCMAKE_BUILD_TYPE="Release" \
-    #         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-    #         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    #         -DCMAKE_INSTALL_PREFIX=install \
-    #         -DOmega_h_USE_MPI=on \
-    #         -DOmega_h_USE_Kokkos=on \
-    #         -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
-    #         -DBUILD_TESTING=off \
-    #         -DBUILD_SHARED_LIBS=on \
-    #         -DOmega_h_USE_ADIOS2=ON \
-    #         -DOmega_h_USE_Gmsh=ON \
-    #         -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
-    #         -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so \
-    #         -DOmega_h_USE_libMeshb=on \
-    #         -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
-    #         -DOmega_h_USE_OpenMP=OFF \
-    #         -DCMAKE_CXX_EXTENSIONS=OFF
-    #        cmake --build . -j 8 --target install
+    - name: build and install omega_h
+      working-directory: omega_h
+      run: |
+           mkdir build
+           cd build
+           cmake .. \
+            -DCMAKE_BUILD_TYPE="Release" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DOmega_h_USE_MPI=on \
+            -DOmega_h_USE_Kokkos=on \
+            -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
+            -DBUILD_TESTING=off \
+            -DBUILD_SHARED_LIBS=on \
+            -DOmega_h_USE_ADIOS2=ON \
+            -DOmega_h_USE_Gmsh=ON \
+            -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
+            -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so \
+            -DOmega_h_USE_libMeshb=on \
+            -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
+            -DOmega_h_USE_OpenMP=OFF \
+            -DCMAKE_CXX_EXTENSIONS=OFF
+           cmake --build . -j 8 --target install
     
-    # - name: Print ccache statistics
-    #   run: ccache -s
+    - name: Print ccache statistics
+      run: ccache -s
 
-    # - name: test omega_h install
-    #   working-directory: omega_h/example/external_installation
-    #   run: |
-    #        mkdir build
-    #        cd build
-    #        cmake .. \
-    #         -DOmega_h_DIR=${{github.workspace}}/omega_h/build/install/lib/cmake/Omega_h
-    #        cmake --build . -j 8
+    - name: test omega_h install
+      working-directory: omega_h/example/external_installation
+      run: |
+           mkdir build
+           cd build
+           cmake .. \
+            -DOmega_h_DIR=${{github.workspace}}/omega_h/build/install/lib/cmake/Omega_h
+           cmake --build . -j 8
     
     
