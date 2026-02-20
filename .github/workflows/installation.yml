@@ -189,6 +189,11 @@ jobs:
             -DADIOS2_USE_ZFP=OFF
            cmake --build . -j 4 --target install
 
+    - name: Set environment variables for gmsh
+      run: |
+           echo "CMAKE_PREFIX_PATH=${{runner.temp}}/gmsh/build/install:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
+           echo "LD_LIBRARY_PATH=${{runner.temp}}/gmsh/build/install/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
     - name: build and install omega_h
       working-directory: omega_h
       run: |
@@ -210,7 +215,7 @@ jobs:
             -DOmega_h_USE_ADIOS2=ON \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
-            -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so.4.14.2 \
+            -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so.4.14.1 \
             -DGmsh_PREFIX=${{runner.temp}}/gmsh/build/install \
             -DOmega_h_USE_libMeshb=on \
             -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
