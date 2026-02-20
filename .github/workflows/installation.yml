@@ -126,6 +126,8 @@ jobs:
     - name: test omega_h install
       working-directory: omega_h/example/external_installation
       run: |
+           mkdir build
+           cd build
            cmake .. \
             -DOmega_h_DIR=${{github.workspace}}/omega_h/build/install/lib/cmake/Omega_h
            cmake --build . -j 8
