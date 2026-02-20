@@ -43,9 +43,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{github.workspace}}/.ccache
-        key: "${{matrix.compiler}}-\
-          ccache-${{steps.setup-ccache.outputs.timestamp}}"
-        restore-keys: "${{matrix.compiler}}-ccache-"
+        key: "${{matrix.compiler}}-ccache-${{github.ref}}-${{github.sha}}"
+        restore-keys: |
+          ${{matrix.compiler}}-ccache-${{github.ref}}-
+          ${{matrix.compiler}}-ccache-
 
     - name: Clear ccache statistics
       run: ccache -z
@@ -70,12 +71,11 @@ jobs:
            mkdir build
            cd build
            cmake .. \
-            -Bbuild \
             -DENABLE_BUILD_DYNAMIC=1 \
             -DCMAKE_INSTALL_PREFIX=install \
             -DENABLE_BUILD_LIB=ON \
             -DBUILD_SHARED_LIBS=ON
-           cmake --build build -j 4 --target install
+           cmake --build . -j 4 --target install
     
     - name: cache kokkos
       id: cache-kokkos
@@ -111,6 +111,7 @@ jobs:
            cd build
            cmake .. \
             -DCMAKE_BUILD_TYPE="Release" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_INSTALL_PREFIX=install \
             -DOmega_h_USE_MPI=on \
@@ -122,6 +123,9 @@ jobs:
             -DOmega_h_USE_OpenMP=OFF \
             -DCMAKE_CXX_EXTENSIONS=OFF
            cmake --build . -j 8 --target install
+    
+    - name: Print ccache statistics
+      run: ccache -s
 
     - name: test omega_h install
       working-directory: omega_h/example/external_installation
