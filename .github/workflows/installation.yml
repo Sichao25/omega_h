@@ -192,6 +192,9 @@ jobs:
     - name: build and install omega_h
       working-directory: omega_h
       run: |
+          ls ${{runner.temp}}/gmsh/build/install
+          ls ${{runner.temp}}/gmsh/build/install/lib
+          ls ${{runner.temp}}/gmsh/build/install/include
            mkdir build
            cd build
            cmake .. \
