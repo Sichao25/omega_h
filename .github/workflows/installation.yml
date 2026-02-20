@@ -71,7 +71,7 @@ jobs:
             -DENABLE_BUILD_DYNAMIC=1 \
             -DCMAKE_INSTALL_PREFIX=install \
             -DENABLE_BUILD_LIB=ON \
-            -DENABLE_BUILD_SHARED=ON
+            -DBUILD_SHARED_LIBS=ON
            cmake --build build -j 4 --target install
     
     - name: clone Kokkos
@@ -95,7 +95,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
             -DCMAKE_INSTALL_PREFIX=install \
             -DKokkos_ENABLE_CUDA=OFF \
-            -DENABLE_BUILD_SHARED=ON
+            -DBUILD_SHARED_LIBS=ON
            cmake --build . -j 4 --target install
     
     - name: build and install omega_h
@@ -109,7 +109,6 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=install \
             -DOmega_h_USE_MPI=on \
             -DOmega_h_USE_Kokkos=on \
-            -DENABLE_BUILD_SHARED=ON \
             -DKokkos_PREFIX=${{runner.temp}}/kokkos/build/install \
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
