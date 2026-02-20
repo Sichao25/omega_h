@@ -198,6 +198,9 @@ jobs:
     - name: build and install omega_h
       working-directory: omega_h
       run: |
+           ls ${{runner.temp}}/adios2/build/install/lib/cmake/ADIOS2
+           ls ${{runner.temp}}/adios2/build/install
+           ls ${{runner.temp}}/adios2/build/install/include
            mkdir build
            cd build
            cmake .. \
