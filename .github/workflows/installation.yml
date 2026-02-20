@@ -11,17 +11,8 @@ jobs:
     strategy:
       matrix:
         compiler: [g++, clang++]
-        include:
-          - compiler: g++
-            c_compiler: gcc
-          - compiler: clang++
-            c_compiler: clang
           
     env:
-      CC: ${{matrix.c_compiler}}
-      CXX: ${{matrix.compiler}}
-      MPICH_CC: ${{matrix.c_compiler}}
-      MPICH_CXX: ${{matrix.compiler}}
       CCACHE_DIR: ${{github.workspace}}/.ccache
       CCACHE_BASEDIR: ${{github.workspace}}
       CCACHE_COMPRESS: true
