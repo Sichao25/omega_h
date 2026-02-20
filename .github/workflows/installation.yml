@@ -193,7 +193,6 @@ jobs:
       run: |
            echo "CMAKE_PREFIX_PATH=${{runner.temp}}/gmsh/build/install:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
            echo "LD_LIBRARY_PATH=${{runner.temp}}/gmsh/build/install/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-           export CMAKE_PREFIX_PATH=${{runner.temp}}/adios2/build/install:$CMAKE_PREFIX_PATH
 
     - name: build and install omega_h
       working-directory: omega_h
@@ -211,6 +210,7 @@ jobs:
             -DBUILD_TESTING=off \
             -DBUILD_SHARED_LIBS=on \
             -DOmega_h_USE_ADIOS2=ON \
+            -DADIOS2_DIR=${{runner.temp}}/adios2/build/install/lib/cmake/ADIOS2 \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp}}/gmsh/build/install/include \
             -DGmsh_LIBRARIES=${{runner.temp}}/gmsh/build/install/lib/libgmsh.so \
