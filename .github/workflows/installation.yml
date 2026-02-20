@@ -51,6 +51,7 @@ jobs:
       run: ccache -z
     
     - name: cache gmsh
+      id: cache-gmsh
       uses: actions/cache@v3
       with:
         path: ${{runner.temp}}/gmsh
@@ -77,6 +78,7 @@ jobs:
            cmake --build build -j 4 --target install
     
     - name: cache kokkos
+      id: cache-kokkos
       uses: actions/cache@v3
       with:
         path: ${{runner.temp}}/kokkos
