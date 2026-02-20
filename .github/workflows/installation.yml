@@ -49,19 +49,21 @@ jobs:
 
     - name: Clear ccache statistics
       run: ccache -z
-
-    - name: clone gmsh
-      working-directory: ${{runner.temp }}
-      run: |
-           git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
     
     - name: cache gmsh
       uses: actions/cache@v3
       with:
         path: ${{runner.temp}}/gmsh
         key: build-gmsh-${{ matrix.compiler }}
+
+    - name: clone gmsh
+      if: steps.cache-gmsh.outputs.cache-hit != 'true'
+      working-directory: ${{runner.temp }}
+      run: |
+           git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
     
     - name: build and install gmsh
+      if: steps.cache-gmsh.outputs.cache-hit != 'true'
       working-directory: ${{runner.temp}}/gmsh
       run: |
            mkdir build
@@ -74,18 +76,20 @@ jobs:
             -DBUILD_SHARED_LIBS=ON
            cmake --build build -j 4 --target install
     
-    - name: clone Kokkos
-      working-directory: ${{runner.temp }}
-      run: |
-           git clone --branch 5.0.0 https://github.com/kokkos/kokkos.git kokkos
-    
     - name: cache kokkos
       uses: actions/cache@v3
       with:
         path: ${{runner.temp}}/kokkos
         key: build-kokkos-${{ matrix.compiler }}
 
+    - name: clone Kokkos
+      if: steps.cache-kokkos.outputs.cache-hit != 'true'
+      working-directory: ${{runner.temp }}
+      run: |
+           git clone --branch 5.0.0 https://github.com/kokkos/kokkos.git kokkos
+
     - name: build and install kokkos
+      if: steps.cache-kokkos.outputs.cache-hit != 'true'
       working-directory: ${{runner.temp }}/kokkos
       run: |
            mkdir build
