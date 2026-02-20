@@ -193,6 +193,7 @@ jobs:
       run: |
            echo "CMAKE_PREFIX_PATH=${{runner.temp}}/gmsh/build/install:$CMAKE_PREFIX_PATH" >> $GITHUB_ENV
            echo "LD_LIBRARY_PATH=${{runner.temp}}/gmsh/build/install/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+           echo "CMAKE_LIBRARY_PATH=${{runner.temp}}/adios2/build/install/lib:$CMAKE_LIBRARY_PATH" >> $GITHUB_ENV
 
     - name: build and install omega_h
       working-directory: omega_h
