@@ -259,6 +259,7 @@ void write_parallel(filesystem::path const& filename, Mesh& mesh);
 
 namespace xgc {
 Mesh read(filesystem::path const& basename, CommPtr comm);
+void write(filesystem::path const& basename, Mesh* mesh);
 }  // namespace xgc
 
 namespace vtk {

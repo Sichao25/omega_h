@@ -5,9 +5,11 @@
 #include <vector>
 
 #include "Omega_h_build.hpp"
+#include "Omega_h_mark.hpp"
 
 namespace Omega_h {
 
+// XGC mesh format based on https://xgc.pppl.gov/html/mesh_file_format.html
 namespace xgc {
 
 namespace {
@@ -96,9 +98,9 @@ Mesh read(filesystem::path const& basename, CommPtr comm) {
       host_conn[i] = conn[static_cast<std::size_t>(i)];
     }
 
-    auto ev2v = LOs(host_conn.write());
-    auto reals = Reals(host_coords.write());
-    build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, FACE, ev2v, reals);
+    auto ev2v_dev = LOs(host_conn);
+    auto coords_dev = Reals(host_coords);
+    build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, FACE, ev2v_dev, coords_dev);
 
     if (!boundary_markers.empty()) {
       HostWrite<I8> host_bm(nverts);
@@ -106,12 +108,59 @@ Mesh read(filesystem::path const& basename, CommPtr comm) {
         host_bm[i] = static_cast<I8>(
             boundary_markers[static_cast<std::size_t>(i)]);
       }
-      mesh.add_tag(VERT, "boundary_marker", 1, Read<I8>(host_bm.write()));
+      mesh.add_tag(VERT, "boundary_marker", 1, Read<I8>(host_bm));
     }
   }
   mesh.set_comm(comm);
   mesh.balance();
   return mesh;
+}
+
+void write(filesystem::path const& basename, Mesh* mesh) {
+  OMEGA_H_CHECK(mesh->comm()->size() == 1);
+  OMEGA_H_CHECK(mesh->dim() == 2);
+
+  auto node_path = basename.string() + ".node";
+  auto ele_path = basename.string() + ".ele";
+
+  auto nverts = mesh->nverts();
+  auto nelems = mesh->nelems();
+  auto dim = mesh->dim();
+  auto coords = mesh->coords();
+  auto e2v = mesh->ask_elem_verts();
+
+  auto exposed_sides = mark_exposed_sides(mesh);
+  auto exposed_nodes = mark_down(mesh, dim - 1, 0, exposed_sides);
+
+  HostRead<Real> h_coords(coords);
+  HostRead<LO> h_e2v(e2v);
+  HostRead<I8> h_exposed(exposed_nodes);
+
+  std::ofstream node_stream(node_path);
+  if (!node_stream.is_open()) {
+    Omega_h_fail("couldn't open \"%s\"\n", node_path.c_str());
+  }
+  node_stream << nverts << " 2 0 1\n";
+  for (LO i = 0; i < nverts; ++i) {
+    node_stream << i + 1 << " " << h_coords[i * dim] << " "
+                << h_coords[i * dim + 1] << " "
+                << static_cast<int>(h_exposed[i]) << "\n";
+  }
+  node_stream.close();
+
+  std::ofstream ele_stream(ele_path);
+  if (!ele_stream.is_open()) {
+    Omega_h_fail("couldn't open \"%s\"\n", ele_path.c_str());
+  }
+  ele_stream << nelems << " 3 0\n";
+  for (LO i = 0; i < nelems; ++i) {
+    ele_stream << i + 1;
+    for (LO j = 0; j < dim + 1; ++j) {
+      ele_stream << " " << h_e2v[i * (dim + 1) + j] + 1;
+    }
+    ele_stream << "\n";
+  }
+  ele_stream.close();
 }
 
 }  // namespace xgc
