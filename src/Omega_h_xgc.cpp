@@ -146,6 +146,7 @@ void write(filesystem::path const& basename, Mesh* mesh) {
                 << h_coords[i * dim + 1] << " "
                 << static_cast<int>(h_exposed[i]) << "\n";
   }
+  node_stream << "\n";
   node_stream.close();
 
   std::ofstream ele_stream(ele_path);
@@ -160,6 +161,7 @@ void write(filesystem::path const& basename, Mesh* mesh) {
     }
     ele_stream << "\n";
   }
+  ele_stream << "\n";
   ele_stream.close();
 }
 
