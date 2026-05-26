@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <string>
-#include <vector>
 
 #include "Omega_h_build.hpp"
 #include "Omega_h_mark.hpp"
@@ -14,8 +13,8 @@ namespace xgc {
 
 namespace {
 
-void read_node_file(std::istream& stream, std::vector<Real>& coords,
-    std::vector<Int>& boundary_markers) {
+void read_node_file(std::istream& stream, HostWrite<Real>& coords,
+    HostWrite<I8>& boundary_markers, bool& has_boundary_markers) {
   Int nverts, dim, nattributes, nboundary_markers;
   stream >> nverts >> dim >> nattributes >> nboundary_markers;
   OMEGA_H_CHECK(nverts > 0);
@@ -23,32 +22,35 @@ void read_node_file(std::istream& stream, std::vector<Real>& coords,
   OMEGA_H_CHECK(nattributes == 0);
   OMEGA_H_CHECK(nboundary_markers == 0 || nboundary_markers == 1);
 
-  coords.resize(static_cast<std::size_t>(nverts) * 2);
-  boundary_markers.resize(static_cast<std::size_t>(nverts), 0);
+  has_boundary_markers = (nboundary_markers == 1);
+  coords = HostWrite<Real>(nverts * 2);
+  if (has_boundary_markers) {
+    boundary_markers = HostWrite<I8>(nverts);
+  }
 
   for (Int i = 0; i < nverts; ++i) {
     Int index;
     Real r, z;
     stream >> index >> r >> z;
     OMEGA_H_CHECK(index == i + 1);
-    coords[static_cast<std::size_t>(i * 2)] = r;
-    coords[static_cast<std::size_t>(i * 2 + 1)] = z;
-    if (nboundary_markers == 1) {
+    coords[i * 2] = r;
+    coords[i * 2 + 1] = z;
+    if (has_boundary_markers) {
       Int bm;
       stream >> bm;
-      boundary_markers[static_cast<std::size_t>(i)] = bm;
+      boundary_markers[i] = static_cast<I8>(bm);
     }
   }
 }
 
-void read_ele_file(std::istream& stream, std::vector<LO>& conn) {
+void read_ele_file(std::istream& stream, HostWrite<LO>& conn) {
   Int ntris, nodes_per_tri, nattributes;
   stream >> ntris >> nodes_per_tri >> nattributes;
   OMEGA_H_CHECK(ntris > 0);
   OMEGA_H_CHECK(nodes_per_tri == 3);
   OMEGA_H_CHECK(nattributes == 0);
 
-  conn.resize(static_cast<std::size_t>(ntris) * 3);
+  conn = HostWrite<LO>(ntris * 3);
 
   for (Int i = 0; i < ntris; ++i) {
     Int index;
@@ -56,7 +58,7 @@ void read_ele_file(std::istream& stream, std::vector<LO>& conn) {
     for (Int j = 0; j < 3; ++j) {
       Int node;
       stream >> node;
-      conn[static_cast<std::size_t>(i * 3 + j)] = node - 1;
+      conn[i * 3 + j] = node - 1;
     }
   }
 }
@@ -78,36 +80,19 @@ Mesh read(filesystem::path const& basename, CommPtr comm) {
       Omega_h_fail("couldn't open \"%s\"\n", ele_path.c_str());
     }
 
-    std::vector<Real> coords;
-    std::vector<Int> boundary_markers;
-    read_node_file(node_stream, coords, boundary_markers);
+    HostWrite<Real> host_coords;
+    HostWrite<I8> host_bm;
+    bool has_boundary_markers;
+    read_node_file(node_stream, host_coords, host_bm, has_boundary_markers);
 
-    std::vector<LO> conn;
-    read_ele_file(ele_stream, conn);
-
-    auto nverts = static_cast<LO>(coords.size() / 2);
-    auto ntris = static_cast<LO>(conn.size() / 3);
-
-    HostWrite<Real> host_coords(nverts * 2);
-    for (LO i = 0; i < nverts * 2; ++i) {
-      host_coords[i] = coords[static_cast<std::size_t>(i)];
-    }
-
-    HostWrite<LO> host_conn(ntris * 3);
-    for (LO i = 0; i < ntris * 3; ++i) {
-      host_conn[i] = conn[static_cast<std::size_t>(i)];
-    }
+    HostWrite<LO> host_conn;
+    read_ele_file(ele_stream, host_conn);
 
     auto ev2v_dev = LOs(host_conn);
     auto coords_dev = Reals(host_coords);
     build_from_elems_and_coords(&mesh, OMEGA_H_SIMPLEX, FACE, ev2v_dev, coords_dev);
 
-    if (!boundary_markers.empty()) {
-      HostWrite<I8> host_bm(nverts);
-      for (LO i = 0; i < nverts; ++i) {
-        host_bm[i] = static_cast<I8>(
-            boundary_markers[static_cast<std::size_t>(i)]);
-      }
+    if (has_boundary_markers) {
       mesh.add_tag(VERT, "boundary_marker", 1, Read<I8>(host_bm));
     }
   }
