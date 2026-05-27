@@ -1,4 +1,4 @@
-name: CMake test matrix
+name: CMake installation test matrix
 on:
   push:
     branches: [ master ]
@@ -85,7 +85,7 @@ jobs:
       if: steps.cache-libmeshb.outputs.cache-hit != 'true'
       working-directory: ${{runner.temp }}
       run: |
-           git clone --depth 1 https://github.com/LoicMarechal/libMeshb.git libmeshb
+           git clone --branch v7.80 --depth 1 https://github.com/LoicMarechal/libMeshb.git libmeshb
 
     - name: build and install libMeshb
       if: steps.cache-libmeshb.outputs.cache-hit != 'true'
