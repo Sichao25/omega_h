@@ -8,7 +8,10 @@
 
 namespace Omega_h {
 
-// XGC mesh format based on https://xgc.pppl.gov/html/mesh_file_format.html
+// XGC mesh file format
+// based on https://xgc.pppl.gov/html/mesh_file_format.html
+// accessed 5/27/2026
+
 namespace xgc {
 
 namespace {
