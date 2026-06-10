@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # manually triggered from GitHub UI
   push:
     branches:
-      - test_actions  # trigger on pushes to this branch
+      - test_action  # trigger on pushes to this branch
 
 jobs:
   debug:
