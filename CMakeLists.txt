@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.0...${CMAKE_VERSION})
 
-project(Omega_h VERSION 11.0.1 LANGUAGES CXX)
+project(Omega_h VERSION 11.1.0 LANGUAGES CXX)
 set(Omega_h_USE_STK_DEFAULT OFF)
 option(Omega_h_USE_STK "Whether to build the STK interface" ${Omega_h_USE_STK_DEFAULT})
 
@@ -107,9 +107,11 @@ if(Omega_h_USE_Kokkos)
   if ("SYCL" IN_LIST Kokkos_DEVICES)
       bob_option(Omega_h_USE_SYCL "Whether to use SYCL" "ON")
   endif()
-  if (Kokkos_ENABLE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
-    message(FATAL_ERROR
-            "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
+  if (Kokkos_VERSION VERSION_LESS 4.1)
+    if (Kokkos_ENABLE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
+      message(FATAL_ERROR
+              "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
+    endif()
   endif()
 endif()
 

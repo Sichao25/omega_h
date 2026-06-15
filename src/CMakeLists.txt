@@ -332,6 +332,11 @@ osh_add_util(ascii_vtk2osh)
 set(ENABLE_CTEST_MEMPOOL OFF CACHE BOOL "Run tests with the Kokkos mempool enabled")
 
 if(BUILD_TESTING)
+  # Create test output directory in build tree to avoid polluting source tree
+  set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_output)
+  file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR})
+  file(MAKE_DIRECTORY ${TEST_OUTPUT_DIR}/d3d)
+
   if(Omega_h_USE_MPI)
     if(NOT MPIEXEC_EXECUTABLE)
       get_filename_component(COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
@@ -419,39 +424,39 @@ if(BUILD_TESTING)
     test_func(run_tri_convert_gold 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
-      ${d3dMesh}/d3d-coreMesh-gold.osh)
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-gold.osh)
     test_func(run_tri_convert 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
-      ${d3dMesh}/d3d-coreMesh.osh)
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh.osh)
     #ensure determinism (with same build) of meshsim2osh
     test_func(diff_tri_convert 1 ./oshdiff
-      ${d3dMesh}/d3d-coreMesh-gold.osh
-      ${d3dMesh}/d3d-coreMesh.osh)
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-gold.osh
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh.osh)
     test_func(run_tri_convert_numbering_gold 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
-      ${d3dMesh}/d3d-coreMesh-numbered-gold.osh
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-numbered-gold.osh
       -numbering ${d3dMesh}/d3d-coreMesh.nex)
     test_func(run_tri_convert_numbering 1 ./meshsim2osh
       ${d3dMesh}/d3d-coreMesh.sms
       ${d3dMesh}/d3d.smd
-      ${d3dMesh}/d3d-coreMesh-numbered.osh
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-numbered.osh
       -numbering ${d3dMesh}/d3d-coreMesh.nex)
     test_func(diff_tri_convert_numbering 1 ./oshdiff
-      ${d3dMesh}/d3d-coreMesh-numbered-gold.osh
-      ${d3dMesh}/d3d-coreMesh-numbered.osh)
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-numbered-gold.osh
+      ${TEST_OUTPUT_DIR}/d3d/d3d-coreMesh-numbered.osh)
 
     if(Omega_h_USE_SimDiscrete)
       osh_add_exe(mixed_writeMesh)
       list(APPEND TEST_EXES mixed_writeMesh)
       test_func(run_mixed_writeMesh 1 ./mixed_writeMesh
-                ${CMAKE_SOURCE_DIR}/meshes)
+                ${TEST_OUTPUT_DIR})
 
       osh_add_exe(mixed_test)
       list(APPEND TEST_EXES mixed_test)
       test_func(run_mixed_test 1 ./mixed_test
-        ${CMAKE_SOURCE_DIR}/meshes)
+        ${CMAKE_SOURCE_DIR}/meshes ${TEST_OUTPUT_DIR})
     endif()
 
     osh_add_exe(periodic_test)
@@ -460,17 +465,46 @@ if(BUILD_TESTING)
   if(Omega_h_USE_SEACASExodus)
     test_func(osh2exo_multiCompField 1 ./osh2exo
       ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_2compTag.osh
-      plate_6elem_2compTag.exo)
+      plate_6elem_2compTag_coords_scalar_vec2d.exo)
     set_tests_properties(osh2exo_multiCompField PROPERTIES
-      PASS_REGULAR_EXPRESSION "P0: 4 nodal variables")
-    list(APPEND TEST_EXES osh2exo_multiCompField)
+      PASS_REGULAR_EXPRESSION "P0: 5 nodal variables")
+
     test_func(osh2exo_multiCompField_excluded 1 ./osh2exo
       ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_2compTag.osh
       plate_6elem_2compTag.exo
       --excluded-nodal-fields "vec2d")
     set_tests_properties(osh2exo_multiCompField_excluded PROPERTIES
-      PASS_REGULAR_EXPRESSION "P0: 2 nodal variables")
-    list(APPEND TEST_EXES osh2exo_multiCompField)
+      PASS_REGULAR_EXPRESSION "P0: 3 nodal variables")
+
+    test_func(exo2osh_plate 1 ./exo2osh -v
+      plate_6elem_2compTag_coords_scalar_vec2d.exo
+      plate_6elem_2compTag_exo.osh)
+    set_tests_properties(exo2osh_plate PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: 5 nodal variables")
+
+    test_func(exo2osh_plate_merged 1 ./exo2osh -v --merge-components
+      plate_6elem_2compTag_coords_scalar_vec2d.exo
+      plate_6elem_2compTag_exo_merged.osh)
+    set_tests_properties(exo2osh_plate_merged PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: Merging 2 components of \"coordinates\"")
+
+    test_func(exo2osh_gis_merged 1 ./exo2osh -v --merge-components
+      ${CMAKE_SOURCE_DIR}/meshes/greenlandIceSheet/gis.exo
+      gis_merged.osh)
+    set_tests_properties(exo2osh_gis_merged PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: Merging 11 components of \"temperature\"")
+
+    test_func(exo2osh_gis_p4 4 ./exo2osh -v
+      ${CMAKE_SOURCE_DIR}/meshes/greenlandIceSheet/gis.exo
+      gis_merged_p4.osh)
+    set_tests_properties(exo2osh_gis_p4 PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: Loading nodal variable \"temperature_11\"")
+
+    test_func(exo2osh_gis_merged_p4 4 ./exo2osh -v --merge-components
+      ${CMAKE_SOURCE_DIR}/meshes/greenlandIceSheet/gis.exo
+      gis_merged_p4.osh)
+    set_tests_properties(exo2osh_gis_merged_p4 PROPERTIES
+      PASS_REGULAR_EXPRESSION "P0: Merging 11 components of \"temperature\"")
   endif()
 
   osh_add_exe(load_2d)
@@ -644,9 +678,9 @@ if(BUILD_TESTING)
   test_func(rc_field_test 1 ./rc_field_test
     ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.osh
     ${CMAKE_SOURCE_DIR}/meshes/box_3d.osh
-    ${CMAKE_SOURCE_DIR}/meshes/box3d_adapt.vtk
-    ${CMAKE_SOURCE_DIR}/meshes/plate_6elem.vtu
-    ${CMAKE_SOURCE_DIR}/meshes/plate_6elem_bField.osh)
+    ${TEST_OUTPUT_DIR}/box3d_adapt.vtk
+    ${TEST_OUTPUT_DIR}/plate_6elem.vtu
+    ${TEST_OUTPUT_DIR}/plate_6elem_bField.osh)
   if(Omega_h_USE_MPI)
     osh_add_exe(reverse_class_testp)
     list(APPEND TEST_EXES reverse_class_testp)
@@ -657,10 +691,10 @@ if(BUILD_TESTING)
     list(APPEND TEST_EXES rc_field_testp)
     test_func(rc_field_testp 2 ./rc_field_testp
       ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p.osh
-      ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p.vtk
-      ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p_sync.vtk
-      ${CMAKE_SOURCE_DIR}/meshes/box_3d_2p_reduce.vtk
-      ${CMAKE_SOURCE_DIR}/meshes/box3d_2p_adapt.vtk)
+      ${TEST_OUTPUT_DIR}/box_3d_2p.vtk
+      ${TEST_OUTPUT_DIR}/box_3d_2p_sync.vtk
+      ${TEST_OUTPUT_DIR}/box_3d_2p_reduce.vtk
+      ${TEST_OUTPUT_DIR}/box3d_2p_adapt.vtk)
   endif()
 
   osh_add_exe(shape_test)
@@ -748,6 +782,7 @@ set(Omega_h_HEADERS
   Omega_h_hypercube.hpp
   Omega_h_indset.hpp
   Omega_h_indset_inline.hpp
+  Omega_h_inertia.hpp
   Omega_h_input.hpp
   Omega_h_int128.hpp
   Omega_h_int_iterator.hpp
@@ -833,6 +868,8 @@ if (Omega_h_USE_pybind11)
       PyOmega_h_array.cpp
       PyOmega_h_comm.cpp
       PyOmega_h_library.cpp
+      PyOmega_h_tag.cpp
+      PyOmega_h_graph.cpp
       PyOmega_h_mesh.cpp
       PyOmega_h_build.cpp
       PyOmega_h_adapt.cpp
