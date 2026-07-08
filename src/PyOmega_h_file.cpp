@@ -1,3 +1,4 @@
+#include <fstream>
 #include <Omega_h_file.hpp>
 #include <Omega_h_filesystem.hpp>
 #include <PyOmega_h.hpp>
@@ -103,9 +104,23 @@ void pybind11_file(py::module& m) {
     "Write mesh to parallel VTK files");
 
   m.def(
+    "read_mesh_vtu",
+    [](const std::string& filepath, std::shared_ptr<Omega_h::Comm> comm) {
+      std::ifstream file(filepath, std::ios::binary);
+      if (!file.is_open()) {
+        throw std::runtime_error("Cannot open VTU file: " + filepath);
+      }
+      Omega_h::Mesh mesh(comm->library());
+      Omega_h::vtk::read_vtu(file, comm, &mesh);
+      return mesh;
+    },
+    py::arg("filepath"), py::arg("comm"), "Read mesh from VTU file",
+    py::return_value_policy::move);
+
+  m.def(
     "read_mesh_parallel_vtk",
     [](const std::string& pvtupath, std::shared_ptr<Omega_h::Comm> comm) {
-      Omega_h::Mesh mesh;
+      Omega_h::Mesh mesh(comm->library());
       Omega_h::vtk::read_parallel(pvtupath, comm, &mesh);
       return mesh;
     },
