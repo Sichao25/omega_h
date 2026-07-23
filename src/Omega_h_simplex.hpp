@@ -310,6 +310,42 @@ OMEGA_H_INLINE Int simplex_opposite_template(
   return -1;
 }
 
+constexpr OMEGA_H_INLINE Int simplex_face_from_edges(Int edge0, Int edge1) {
+  if ((edge0 == 0 && edge1 == 1) || (edge0 == 1 && edge1 == 0)) return 0;
+  if ((edge0 == 0 && edge1 == 2) || (edge0 == 2 && edge1 == 0)) return 0;
+  if ((edge0 == 1 && edge1 == 2) || (edge0 == 2 && edge1 == 1)) return 0;
+
+  if ((edge0 == 0 && edge1 == 3) || (edge0 == 3 && edge1 == 0)) return 1;
+  if ((edge0 == 0 && edge1 == 4) || (edge0 == 4 && edge1 == 0)) return 1;
+  if ((edge0 == 3 && edge1 == 4) || (edge0 == 4 && edge1 == 3)) return 1;
+
+  if ((edge0 == 1 && edge1 == 4) || (edge0 == 4 && edge1 == 1)) return 2;
+  if ((edge0 == 1 && edge1 == 5) || (edge0 == 5 && edge1 == 1)) return 2;
+  if ((edge0 == 4 && edge1 == 5) || (edge0 == 5 && edge1 == 4)) return 2;
+
+  if ((edge0 == 2 && edge1 == 3) || (edge0 == 3 && edge1 == 2)) return 3;
+  if ((edge0 == 2 && edge1 == 5) || (edge0 == 5 && edge1 == 2)) return 3;
+  if ((edge0 == 3 && edge1 == 5) || (edge0 == 5 && edge1 == 3)) return 3;
+
+  return -1;
+}
+
+constexpr OMEGA_H_INLINE Int simplex_edge_from_verts(Int elem_dim, Int vert0, Int vert1) {
+  if (elem_dim == 3) {
+    if ((vert0 == 0 && vert1 == 1) || (vert0 == 1 && vert1 == 0)) return 0;
+    if ((vert0 == 1 && vert1 == 2) || (vert0 == 2 && vert1 == 1)) return 1;
+    if ((vert0 == 2 && vert1 == 0) || (vert0 == 0 && vert1 == 2)) return 2;
+    if ((vert0 == 0 && vert1 == 3) || (vert0 == 3 && vert1 == 0)) return 3;
+    if ((vert0 == 1 && vert1 == 3) || (vert0 == 3 && vert1 == 1)) return 4;
+    if ((vert0 == 2 && vert1 == 3) || (vert0 == 3 && vert1 == 2)) return 5;
+  } else if (elem_dim == 2) {
+    if ((vert0 == 0 && vert1 == 1) || (vert0 == 1 && vert1 == 0)) return 0;
+    if ((vert0 == 1 && vert1 == 2) || (vert0 == 2 && vert1 == 1)) return 1;
+    if ((vert0 == 2 && vert1 == 0) || (vert0 == 0 && vert1 == 2)) return 2;
+  }
+  return -1;
+}
+
 OMEGA_H_INLINE constexpr Int simplex_degree(Int from_dim, Int to_dim) {
   // clang-format off
   return (from_dim == 0 ? 1 :
