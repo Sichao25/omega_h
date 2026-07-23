@@ -113,6 +113,8 @@ struct UserTransfer {
    *       are automatically copied and require no custom handling.
    */
   virtual void swap_copy_verts(Mesh& old_mesh, Mesh& new_mesh) = 0;
+
+  virtual void snap(Mesh& mesh, const Reals& old_coords, const Reals& warp) = 0;
 };
 
 struct TransferOpts {

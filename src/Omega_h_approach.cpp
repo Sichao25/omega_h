@@ -45,6 +45,7 @@ bool warp_to_limit(
       std::cout << "warp_to_limit completed in one step\n";
     }
     mesh->remove_tag(VERT, "warp");
+    if (opts.xfer_opts.user_xfer) opts.xfer_opts.user_xfer->snap(*mesh, coords, warp);
     return true;
   }
   auto remainder = Reals(warp.size(), 0.0);
@@ -59,6 +60,7 @@ bool warp_to_limit(
                        "continuing anyway\n";
         }
         mesh->remove_tag(VERT, "warp");
+        if (opts.xfer_opts.user_xfer) opts.xfer_opts.user_xfer->snap(*mesh, coords, warp);
         return true;
       }
       Omega_h_fail(
@@ -77,6 +79,7 @@ bool warp_to_limit(
     std::cout << "warp_to_limit moved by factor " << factor << '\n';
   }
   mesh->set_tag(VERT, "warp", remainder);
+  if (opts.xfer_opts.user_xfer) opts.xfer_opts.user_xfer->snap(*mesh, coords, warp);
   return true;
 }
 
