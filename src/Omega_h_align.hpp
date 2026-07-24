@@ -140,6 +140,13 @@ OMEGA_H_DEVICE void rotate_adj(
   }
 }
 
+OMEGA_H_INLINE constexpr Int flip_new_vert(Int dim, Int index) {
+  if (dim < 3) return index;
+  if (index == 1) return 2;
+  if (index == 2) return 1;
+  return index;
+}
+
 template <Int deg>
 struct FlipAdj;
 
