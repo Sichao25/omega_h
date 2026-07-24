@@ -114,6 +114,16 @@ struct UserTransfer {
    */
   virtual void swap_copy_verts(Mesh& old_mesh, Mesh& new_mesh) = 0;
 
+
+  /** \brief Transfer fields during vertex snap
+   *
+   * Called once per snap iteration
+   *
+   * \param mesh [in/out] Mesh after snapping
+   * \param old_coords [in] Coordinates of each vertex before snapping
+   * \param warp [in] Amount of movement applied to each vertex
+   *
+   */
   virtual void snap(Mesh& mesh, const Reals& old_coords, const Reals& warp) = 0;
 };
 

@@ -88,10 +88,7 @@ constexpr OMEGA_H_INLINE Int simplex_down_template(
   // clang-format on
 }
 
-/* TODO: make these constexpr, either with C++14 or lots of
-   ternary operators */
-
-OMEGA_H_INLINE TemplateUp simplex_up_template(
+constexpr OMEGA_H_INLINE TemplateUp simplex_up_template(
     Int elem_dim, Int bdry_dim, Int which_bdry, Int which_up) {
   switch (elem_dim) {
     case 3:
@@ -230,7 +227,7 @@ OMEGA_H_INLINE TemplateUp simplex_up_template(
   return {-1, -1, 0};
 };
 
-OMEGA_H_INLINE Int simplex_opposite_template(
+constexpr OMEGA_H_INLINE Int simplex_opposite_template(
     Int elem_dim, Int bdry_dim, Int which_bdry) {
   switch (elem_dim) {
     case 3:
