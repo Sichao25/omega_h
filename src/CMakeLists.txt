@@ -109,6 +109,7 @@ set(Omega_h_SOURCES
   Omega_h_xml_lite.cpp
   Omega_h_yaml.cpp
   Omega_h_mesh2d.cpp
+  Omega_h_xgc.cpp
   )
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -294,6 +295,7 @@ osh_add_util(describe)
 osh_add_util(msh2osh)
 osh_add_util(osh2vtk)
 osh_add_util(osh2xgc)
+osh_add_util(xgc2osh)
 osh_add_util(osh2msh)
 osh_add_util(scale)
 osh_add_util(oshdiff)

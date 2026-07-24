@@ -125,7 +125,7 @@ def test_gmsh_io(world, test_mesh_2d, temp_dir):
     assert mesh_read.nelems() == nelems_orig
 
 
-def test_vtu_write(test_mesh, temp_dir):
+def test_vtu_io(world, test_mesh, temp_dir):
     """Test VTU format write (uncompressed)."""
     vtu_file = os.path.join(temp_dir, "test_mesh.vtu")
     omega_h.write_mesh_vtu(vtu_file, test_mesh, compress=False)
@@ -134,9 +134,9 @@ def test_vtu_write(test_mesh, temp_dir):
     file_size = os.path.getsize(vtu_file)
     assert file_size > 0
 
+    mesh_read = omega_h.read_mesh_vtu(vtu_file, test_mesh.comm())
+    assert mesh_read.nverts() == test_mesh.nverts()
 
-def test_vtu_write_compressed(test_mesh, temp_dir):
-    """Test VTU format write (compressed)."""
     vtu_compressed = os.path.join(temp_dir, "test_mesh_compressed.vtu")
     omega_h.write_mesh_vtu(vtu_compressed, test_mesh, compress=True)
     
@@ -144,32 +144,17 @@ def test_vtu_write_compressed(test_mesh, temp_dir):
     compressed_size = os.path.getsize(vtu_compressed)
     assert compressed_size > 0
 
-
-def test_vtu_write_with_cell_dim(test_mesh, temp_dir):
-    """Test VTU format write with specified cell dimension."""
     vtu_file = os.path.join(temp_dir, "test_mesh_celldim.vtu")
     omega_h.write_mesh_vtu(vtu_file, test_mesh, cell_dim=3, compress=False)
     
     assert os.path.exists(vtu_file)
 
+    pvtu_file = os.path.join(temp_dir, "test_mesh_parallel.pvtu")
+    omega_h.write_mesh_parallel_vtk(pvtu_file, test_mesh, compress=False)
+    assert os.path.exists(pvtu_file)
 
-def test_parallel_vtk_write(test_mesh, temp_dir):
-    """Test parallel VTK format write."""
-    # Get initial file count
-    files_before = set(os.listdir(temp_dir))
-    
-    pvtu_base = os.path.join(temp_dir, "test_mesh_parallel")
-    omega_h.write_mesh_parallel_vtk(pvtu_base, test_mesh, compress=False)
-    
-    # Check that new files were created
-    files_after = set(os.listdir(temp_dir))
-    new_files = files_after - files_before
-    
-    # In serial mode, behavior may vary - some implementations might not create
-    # files in the expected way. Just verify the function ran without error.
-    # The fact that it didn't throw an exception is a success.
-    # Note: In parallel mode with multiple ranks, this would create .pvtu and .vtu files
-    pass  # Function completed successfully
+    mesh_pvtu_read = omega_h.read_mesh_parallel_vtk(pvtu_file + "/pieces.pvtu", world)
+    assert mesh_pvtu_read.nverts() == test_mesh.nverts()
 
 
 def test_read_mesh_file_auto_detect_binary(lib, world, test_mesh, temp_dir):
