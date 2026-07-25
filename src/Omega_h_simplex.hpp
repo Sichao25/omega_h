@@ -2,7 +2,6 @@
 #define OMEGA_H_SIMPLEX_HPP
 
 #include <Omega_h_template_up.hpp>
-#include <Omega_h_few.hpp>
 
 /* \file Omega_h_simplex.hpp
   \brief Describes the canonical local boundary connectivity
@@ -88,7 +87,7 @@ constexpr OMEGA_H_INLINE Int simplex_down_template(
   // clang-format on
 }
 
-constexpr OMEGA_H_INLINE TemplateUp simplex_up_template(
+OMEGA_H_INLINE TemplateUp simplex_up_template(
     Int elem_dim, Int bdry_dim, Int which_bdry, Int which_up) {
   switch (elem_dim) {
     case 3:
@@ -227,7 +226,7 @@ constexpr OMEGA_H_INLINE TemplateUp simplex_up_template(
   return {-1, -1, 0};
 };
 
-constexpr OMEGA_H_INLINE Int simplex_opposite_template(
+OMEGA_H_INLINE Int simplex_opposite_template(
     Int elem_dim, Int bdry_dim, Int which_bdry) {
   switch (elem_dim) {
     case 3:
@@ -306,84 +305,6 @@ constexpr OMEGA_H_INLINE Int simplex_opposite_template(
       return -1;
   }
   return -1;
-}
-
-constexpr OMEGA_H_INLINE Int simplex_vertex_opposite_edge(Int dim, Int face, Int edge) {
-  if (dim == 2) return simplex_opposite_template(dim, EDGE, edge);
-  switch (face) {
-    case 0:
-      switch (edge) {
-        case 0: return 2;
-        case 1: return 0;
-        case 2: return 1;
-      }
-      break;
-    case 1:
-      switch (edge) {
-        case 0: return 3;
-        case 3: return 1;
-        case 4: return 0;
-      }
-      break;
-    case 2:
-      switch (edge) {
-        case 1: return 3;
-        case 4: return 2;
-        case 5: return 1;
-      }
-      break;
-    case 3:
-      switch (edge) {
-        case 2: return 3;
-        case 3: return 2;
-        case 5: return 0;
-      }
-      break;
-  }
-  return -1;
-}
-
-constexpr OMEGA_H_INLINE Int simplex_face_from_edges(Int edge0, Int edge1) {
-  if ((edge0 == 0 && edge1 == 1) || (edge0 == 1 && edge1 == 0)) return 0;
-  if ((edge0 == 0 && edge1 == 2) || (edge0 == 2 && edge1 == 0)) return 0;
-  if ((edge0 == 1 && edge1 == 2) || (edge0 == 2 && edge1 == 1)) return 0;
-
-  if ((edge0 == 0 && edge1 == 3) || (edge0 == 3 && edge1 == 0)) return 1;
-  if ((edge0 == 0 && edge1 == 4) || (edge0 == 4 && edge1 == 0)) return 1;
-  if ((edge0 == 3 && edge1 == 4) || (edge0 == 4 && edge1 == 3)) return 1;
-
-  if ((edge0 == 1 && edge1 == 4) || (edge0 == 4 && edge1 == 1)) return 2;
-  if ((edge0 == 1 && edge1 == 5) || (edge0 == 5 && edge1 == 1)) return 2;
-  if ((edge0 == 4 && edge1 == 5) || (edge0 == 5 && edge1 == 4)) return 2;
-
-  if ((edge0 == 2 && edge1 == 3) || (edge0 == 3 && edge1 == 2)) return 3;
-  if ((edge0 == 2 && edge1 == 5) || (edge0 == 5 && edge1 == 2)) return 3;
-  if ((edge0 == 3 && edge1 == 5) || (edge0 == 5 && edge1 == 3)) return 3;
-
-  return -1;
-}
-
-constexpr OMEGA_H_INLINE Int simplex_edge_from_verts(Int elem_dim, Int vert0, Int vert1) {
-  if (elem_dim == 3) {
-    if ((vert0 == 0 && vert1 == 1) || (vert0 == 1 && vert1 == 0)) return 0;
-    if ((vert0 == 1 && vert1 == 2) || (vert0 == 2 && vert1 == 1)) return 1;
-    if ((vert0 == 2 && vert1 == 0) || (vert0 == 0 && vert1 == 2)) return 2;
-    if ((vert0 == 0 && vert1 == 3) || (vert0 == 3 && vert1 == 0)) return 3;
-    if ((vert0 == 1 && vert1 == 3) || (vert0 == 3 && vert1 == 1)) return 4;
-    if ((vert0 == 2 && vert1 == 3) || (vert0 == 3 && vert1 == 2)) return 5;
-  } else if (elem_dim == 2) {
-    if ((vert0 == 0 && vert1 == 1) || (vert0 == 1 && vert1 == 0)) return 0;
-    if ((vert0 == 1 && vert1 == 2) || (vert0 == 2 && vert1 == 1)) return 1;
-    if ((vert0 == 2 && vert1 == 0) || (vert0 == 0 && vert1 == 2)) return 2;
-  }
-  return -1;
-}
-
-template <Int bdry_dim>
-constexpr Few<Int, bdry_dim+1> simplex_gather_down(Int elem_dim, Int index, Int rotation = 0) {
-  Few<Int, bdry_dim+1> output = {};
-  for (int i=0; i<bdry_dim+1; i++) output[i] = simplex_down_template(elem_dim, bdry_dim, index, i ^ rotation);
-  return output;
 }
 
 OMEGA_H_INLINE constexpr Int simplex_degree(Int from_dim, Int to_dim) {
