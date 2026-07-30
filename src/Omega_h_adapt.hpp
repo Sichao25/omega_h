@@ -127,6 +127,7 @@ struct UserTransfer {
    * 
    * \note If snapping could not complete in one step, then vertices will not
    * yet be on the boundary. Between these snapping steps the mesh will change.
+   * Also, currently there is no built-in field transfer for vertex repositioning.
    *
    */
   virtual void snap(Mesh& mesh, const Reals& old_coords, const Reals& warp) = 0;
