@@ -14,9 +14,9 @@ class Mesh;
 
 /** \brief Application hook for custom field transfer during mesh adaptation.
  *
- * UserTransfer provides callbacks invoked during refinement, coarsening, and
- * swapping operations to customize how application-specific fields are
- * transferred from the old mesh to the new mesh. Each adaptation operation
+ * UserTransfer provides callbacks invoked during refinement, coarsening, 
+ * snapping, and swapping operations to customize how application-specific fields 
+ * are transferred from the old mesh to the new mesh. Each adaptation operation
  * loops over entity dimensions (0=VERT to mesh->dim()), calling the
  * corresponding method after default field transfers (should_inherit,
  * should_interpolate, conserve, etc.) complete for that dimension.
@@ -113,6 +113,24 @@ struct UserTransfer {
    *       are automatically copied and require no custom handling.
    */
   virtual void swap_copy_verts(Mesh& old_mesh, Mesh& new_mesh) = 0;
+
+
+  /** \brief Transfer fields during vertex snap
+   *
+   * Called after edge lengths are satisfied. Might be called multiple times
+   * if snapping could not complete in one step. To be used to update fields 
+   * that depend on the position of the verticies.
+   *
+   * \param mesh [in/out] Mesh after snapping
+   * \param old_coords [in] Coordinates of each vertex before snapping
+   * \param warp [in] Amount of movement applied to each vertex
+   * 
+   * \note If snapping could not complete in one step, then vertices will not
+   * yet be on the boundary. Between these snapping steps the mesh will change.
+   * Also, currently there is no built-in field transfer for vertex repositioning.
+   *
+   */
+  virtual void snap(Mesh& mesh, const Reals& old_coords, const Reals& warp) = 0;
 };
 
 struct TransferOpts {
