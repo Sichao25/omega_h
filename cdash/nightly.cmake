@@ -12,7 +12,7 @@ set(CTEST_DROP_LOCATION "/submit.php?project=SCOREC")
 set(CTEST_DROP_SITE_CDASH TRUE)
 set(CTEST_BUILD_NAME  "linux-gcc-${CTEST_BUILD_CONFIGURATION}")
 
-set(CTEST_DASHBOARD_ROOT "/lore/yus9/nightlyBuilds/omega_h_build/" )
+set(CTEST_DASHBOARD_ROOT "/users/d_zxg06726/nightlyBuilds/omega_h_build/" )
 set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
 set(CTEST_BUILD_FLAGS -j4)
 
@@ -27,6 +27,7 @@ set(MERGE_AUTHOR "Nightly Bot <donotemail@scorec.rpi.edu>")
 set(CTEST_SOURCE_DIRECTORY "${CTEST_DASHBOARD_ROOT}/${CTEST_SOURCE_NAME}")
 set(CTEST_BINARY_DIRECTORY "${CTEST_DASHBOARD_ROOT}/${CTEST_BINARY_NAME}")
 
+# set(GROUP_NAME "Omega_h")
 set_property(GLOBAL PROPERTY SubProject "omega_h")
 set_property(GLOBAL PROPERTY Label "omega_h")
 
@@ -169,6 +170,7 @@ function(check_tracking_branch BRANCH_NAME CONFIG_OPTS ERRVAR)
   set(${ERRVAR} ${ERRVAL2} PARENT_SCOPE)
 endfunction(check_tracking_branch)
 
+# ctest_start(${CTEST_TEST_TYPE} GROUP ${GROUP_NAME})
 ctest_start(${CTEST_TEST_TYPE})
 
 if(CTEST_DO_SUBMIT)
@@ -181,7 +183,6 @@ endif()
 
 SET(CONFIGURE_OPTIONS
   "-DOmega_h_USE_MPI=OFF"
-  "-DOmega_h_USE_CUDA=ON"
   "-DOmega_h_CUDA_ARCH=80"
   "-DOmega_h_USE_Kokkos=ON"
   "-DKokkos_PREFIX=${CTEST_DASHBOARD_ROOT}/build-kokkos/install"
