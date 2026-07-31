@@ -116,7 +116,7 @@ LO number_same_values(
   auto const last = IntIterator(a.size());
   auto const result = tmp_perm.begin() + 1;
   auto const op = plus<LO>();
-  auto transform = OMEGA_H_LAMBDA(LO i)->LO {
+  auto transform = [=] __host__ __device__ (LO i)->LO {
     return a[i] == value ? LO(1) : LO(0);
   };
   transform_inclusive_scan(first, last, result, op, std::move(transform));
