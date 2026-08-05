@@ -187,20 +187,6 @@ if(Omega_h_USE_EGADSlite)
   install(TARGETS ohEgadslite EXPORT omega_h-target ARCHIVE) #HACK
 endif()
 
-if(Omega_h_USE_EGADSlite)
-  find_package(egadslite REQUIRED)
-  add_library(ohEgadslite Omega_h_egads_lite.cpp)
-  set_source_files_properties(Omega_h_egads_lite.cpp PROPERTIES LANGUAGE CUDA)
-  set_target_properties(ohEgadslite PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-  set_target_properties(ohEgadslite PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-  target_link_libraries(ohEgadslite PUBLIC egadslite::egadslite)
-  target_include_directories(ohEgadslite PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR})
-  target_compile_options(ohEgadslite PRIVATE "--expt-extended-lambda")
-  install(TARGETS ohEgadslite EXPORT omega_h-target ARCHIVE) #HACK
-endif()
-
 if(Omega_h_USE_SEACASExodus)
   list(APPEND Omega_h_SOURCES Omega_h_exodus.cpp)
 endif()
@@ -235,7 +221,6 @@ target_include_directories(omega_h PRIVATE $<BUILD_INTERFACE:${TPL_PATH}>)
 if (Omega_h_USE_OpenMP)
   target_compile_options(omega_h PUBLIC -fopenmp)
 endif()
-
 
 bob_link_dependency(omega_h PUBLIC Kokkos)
 
@@ -307,11 +292,14 @@ if(Omega_h_USE_CTAGS)
 endif()
 
 function(osh_add_exe EXE_NAME)
+  if (Omega_h_USE_EGADSlite)
+    set_source_files_properties(${EXE_NAME}.cpp PROPERTIES LANGUAGE CUDA)
+  endif()
   add_executable(${EXE_NAME} ${EXE_NAME}.cpp)
   set_property(TARGET ${EXE_NAME} PROPERTY CXX_STANDARD "17")
   set_property(TARGET ${EXE_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
   set_property(TARGET ${EXE_NAME} PROPERTY CXX_EXTENSIONS OFF)
-  set_property(TARGET ${EXE_NAME} PROPERTY CUDA_ARCHITECTURES ${Omega_h_CUDA_ARCH})
+  # set_property(TARGET ${EXE_NAME} PROPERTY CUDA_ARCHITECTURES ${Omega_h_CUDA_ARCH})
   target_link_libraries(${EXE_NAME} PRIVATE omega_h)
   if (OMP_EXTRA_LIBS)
     file(GLOB OMP_OBJS ${OMP_EXTRA_LIBS})
