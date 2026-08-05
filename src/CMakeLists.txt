@@ -886,11 +886,13 @@ if (Omega_h_USE_pybind11)
   pybind11_add_module(PyOmega_h
       ${PYBIND11_SOURCES})
   target_link_libraries(PyOmega_h PUBLIC omega_h)
-  if (PYTHON_VERSION_MAJOR EQUAL 3)
-    set(PyOmega_h_DEST "lib/python3/dist-packages")
-  else()
-    set(PyOmega_h_DEST "lib/python/dist-packages")
-  endif()
+  # this is useful for direct CMake installation into python.
+  # This enables spack environment installation to directly load the PyOmega_h module
+  set(PyOmega_h_DEST "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
+  # Ensure the extension can resolve Omega_h shared libraries from a standard
+  # prefix install layout (e.g. Spack), where the module lives under
+  # <prefix>/<libdir>/pythonX.Y/site-packages and core libs live in <libdir>.
+  set_target_properties(PyOmega_h PROPERTIES INSTALL_RPATH "\$ORIGIN;\$ORIGIN/../../../")
   install(TARGETS PyOmega_h
       ARCHIVE DESTINATION "${PyOmega_h_DEST}"
       LIBRARY DESTINATION "${PyOmega_h_DEST}")
