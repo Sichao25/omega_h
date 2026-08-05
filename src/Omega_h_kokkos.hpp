@@ -18,19 +18,39 @@ OMEGA_H_SYSTEM_HEADER
 #endif
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_StdAlgorithms.hpp>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 
-#if defined(KOKKOS_HAVE_CUDA) && !defined(OMEGA_H_USE_CUDA)
-#error "Kokkos has CUDA, please reconfigure with Omega_h_USE_CUDA=ON"
+namespace Omega_h {
+
+#if defined(OMEGA_H_USE_OpenMP)
+  using ExecSpace = Kokkos::OpenMP;
+#else
+  using ExecSpace = Kokkos::DefaultExecutionSpace;
 #endif
 
-namespace Omega_h {
-using ExecSpace = Kokkos::DefaultExecutionSpace;
+#if defined(OMEGA_H_MEM_SPACE_SHARED)
+  #if !defined(KOKKOS_HAS_SHARED_SPACE)
+    #error Shared memory space in unavailable
+  #endif
+  using Space = Kokkos::SharedSpace;
+#elif defined(OMEGA_H_MEM_SPACE_HOSTPINNED)
+  #if !defined(KOKKOS_HAS_SHARED_HOST_PINNED_SPACE)
+    #error Host Pinned memory space in unavailable
+  #endif
+  using Space = Kokkos::SharedHostPinnedSpace;
+#else
+  using Space = ExecSpace::memory_space;
+#endif
+
+using Device = Kokkos::Device<ExecSpace, Space>;
 using StaticSched = Kokkos::Schedule<Kokkos::Static>;
 using Policy = Kokkos::RangePolicy<ExecSpace, StaticSched, Omega_h::LO>;
+
+template <class T> using View = Kokkos::View<T, Device>;
 
 inline Policy policy(LO n) { return Policy(0, n); }
 }  // namespace Omega_h

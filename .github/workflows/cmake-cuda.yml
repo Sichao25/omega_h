@@ -1,0 +1,67 @@
+name: CMake test matrix with CUDA
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-22.04
+    container: nvidia/cuda:12.3.0-devel-ubuntu22.04
+
+    strategy:
+      matrix:
+        mempool: [on, off]
+        cxx_standard: [17]
+        #run one config with C++20
+        include:
+          - mempool: on
+            cxx_standard: 20     
+
+    steps:
+    - name: Install CMake and ZLib
+      run: apt update && apt install -y cmake zlib1g-dev git
+    
+    - uses: actions/checkout@v4
+      with:
+        path: omega_h
+
+    - uses: actions/checkout@v4
+      with:
+        repository: kokkos/kokkos
+        path: kokkos
+
+    - name: Configure Kokkos
+      shell: bash
+      working-directory: ${{github.workspace}}/kokkos
+      run: cmake .
+           -Bbuild
+           -DKokkos_ENABLE_CUDA=on
+           -DKokkos_ARCH_TURING75=on
+           -DCMAKE_INSTALL_PREFIX=build/install
+
+    - name: Build Kokkos
+      shell: bash
+      run: cmake --build $GITHUB_WORKSPACE/kokkos/build --target install
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/omega_h
+      run: cmake .
+           -Bbuild
+           -DCMAKE_VERBOSE_MAKEFILE=on
+           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
+           -DOmega_h_USE_MPI=off
+           -DOmega_h_USE_CUDA=on
+           -DOmega_h_CUDA_ARCH=75
+           -DOmega_h_USE_Kokkos=on
+           -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install
+           -DBUILD_TESTING=on
+           -DBUILD_SHARED_LIBS=off
+           -DENABLE_CTEST_MEMPOOL=${{ matrix.mempool }}
+
+    - name: Build
+      working-directory: ${{github.workspace}}/omega_h/build
+      shell: bash
+      run: cmake --build . -j2

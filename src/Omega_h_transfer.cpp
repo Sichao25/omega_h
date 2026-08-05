@@ -9,6 +9,7 @@
 #include "Omega_h_quality.hpp"
 #include "Omega_h_shape.hpp"
 
+#include <iostream>
 namespace Omega_h {
 
 bool is_transfer_required(
@@ -338,8 +339,8 @@ void transfer_length(Mesh* old_mesh, Mesh* new_mesh, LOs same_ents2old_ents,
     LOs same_ents2new_ents, LOs prods2new_ents) {
   for (Int i = 0; i < old_mesh->ntags(EDGE); ++i) {
     auto tagbase = old_mesh->get_tag(EDGE, i);
-    if (tagbase->name() == "length" && tagbase->type() == OMEGA_H_REAL &&
-        tagbase->ncomps() == 1) {
+    if (tagbase->name() == "length" && tagbase->type() == OMEGA_H_REAL
+         && tagbase->ncomps() == 1) {
       auto prod_data = measure_edges_metric(new_mesh, prods2new_ents);
       transfer_common(old_mesh, new_mesh, EDGE, same_ents2old_ents,
           same_ents2new_ents, prods2new_ents, tagbase, prod_data);
@@ -543,10 +544,7 @@ void transfer_pointwise_tmpl(Mesh* old_mesh, Mesh* new_mesh, Int key_dim,
         auto old_elem = kd_elems2elems[kde];
         auto old_v = gather_verts<dim + 1>(old_elem_verts2verts, old_elem);
         auto old_vp = gather_vectors<dim + 1, dim>(old_coords, old_v);
-        auto a = simplex_affine(old_vp);
-        auto ia = invert(a);
-        auto xi = ia * new_ip;
-        auto bc = form_barycentric(xi);
+        auto bc = barycentric_from_global<dim,dim>(new_ip, old_vp);
         auto distance = -reduce(bc, minimum<Real>());
         if (best_old_elem == -1 || distance < best_distance) {
           best_old_elem = old_elem;

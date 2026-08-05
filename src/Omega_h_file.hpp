@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <vector>
+#include <fstream>
 
 #include <Omega_h_config.h>
 #include <Omega_h_array.hpp>
@@ -10,8 +11,18 @@
 #include <Omega_h_defines.hpp>
 #include <Omega_h_filesystem.hpp>
 #include <Omega_h_mesh.hpp>
+#include <Omega_h_mixedMesh.hpp>
 #include <Omega_h_tag.hpp>
 
+#ifdef OMEGA_H_USE_SIMMODSUITE
+#include "MeshSim.h"
+#endif
+
+/** @file
+ * Interfaces for file I/O with other libraries and file formats.
+ */
+
+/** @namespace Omega_h Top-level namespace */
 namespace Omega_h {
 
 OMEGA_H_DLL Mesh read_mesh_file(filesystem::path const& path, CommPtr comm);
@@ -29,7 +40,61 @@ void write_sol(Mesh* mesh, std::string const& filepath,
 }  // namespace meshb
 #endif
 
+#ifdef OMEGA_H_USE_SIMMODSUITE
+/** @namespace Omega_h::meshsim Functions supporting Simmetrix SimModSuite file I/O*/
+namespace meshsim {
+/**
+ * Return if the mesh is mixed or mono topology
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ */
+bool isMixed(filesystem::path const& mesh, filesystem::path const& model);
+/**
+ * Convert a serial Simmetrix sms mesh classified on the specified model to an
+ * Omega_h mesh instance.
+ * @param[in] pointer to Simmetrix mesh instance (pMesh)
+ * @param[in] numbering path to Simmetrix MeshNex .nex numbering file
+ * @param[in] comm path to Omega_h communicator instance
+ * @param[in][optional] a pointer to pMeshDataId for coordinate transformation 
+ *                      data attached to mesh vertices.
+ */
+Mesh read(pMesh* m, filesystem::path const& numbering_fname, CommPtr comm, pMeshDataId* transformedCoordId = NULL);
+/**
+ * Convert a serial Simmetrix sms mesh classified on the specified model to an
+ * Omega_h mesh instance.
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ * @param[in] comm path to Omega_h communicator instance
+ */
+Mesh read(filesystem::path const& mesh, filesystem::path const& model,
+          CommPtr comm);
+/**
+ * Convert a mono topology (i.e., all tets, all triangles, all hex, etc.)
+ * serial Simmetrix sms mesh classified on the specified model to an
+ * Omega_h mesh instance and attach a Simmetrix MeshNex vertex numbering.
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ * @param[in] numbering path to Simmetrix MeshNex .nex numbering file
+ * @param[in] comm path to Omega_h communicator instance
+ */
+Mesh read(filesystem::path const& mesh, filesystem::path const& model,
+          filesystem::path const& numbering, CommPtr comm);
+/**
+ * Convert a mixed topology (i.e., tet + wedge) serial Simmetrix sms mesh
+ * classified on the specified model to an Omega_h mesh instance.
+ * @param[in] mesh path to Simmetrix .sms mesh file
+ * @param[in] model path to Simmetrix GeomSim .smd model file
+ * @param[in] comm path to Omega_h communicator instance
+ */
+MixedMesh readMixed(filesystem::path const& mesh, filesystem::path const& model,
+          CommPtr comm);
+void matchRead(filesystem::path const& mesh_fname, filesystem::path const& model,
+               CommPtr comm, Mesh *mesh, I8 is_in);
+}  // namespace meshsim
+#endif
+
 #ifdef OMEGA_H_USE_SEACASEXODUS
+/** @namespace Omega_h::exodus Functions supporting Exodus II file I/O */
 namespace exodus {
 enum ClassifyWith {
   NODE_SETS = 0x1,
@@ -38,16 +103,128 @@ enum ClassifyWith {
 int open(filesystem::path const& path, bool verbose = false);
 void close(int exodus_file);
 int get_num_time_steps(int exodus_file);
+
+/** @brief %Read an Exodus II file into an Omega_h::Mesh and assign geometric classification.
+ *
+ * Builds the Omega_h::Mesh from element blocks and derives entity classification from
+ * those blocks plus optional node sets and/or side sets, controlled by the
+ * @p classify_with bitmask (bitwise-OR of @c NODE_SETS and/or @c SIDE_SETS).
+ *
+ * Classification is assigned as follows:
+ *   - Elements (dim d): each element's class_id is set to its element block ID
+ *     and class_dim is set to d.
+ *   - Sides (dim d-1): boundary sides are initially given class_id=0.
+ *     - Side sets: each (element, local-side-index) entry provided by Exodus
+ *       identifies a side, which is assigned class_id equal to the side set ID
+ *       and class_dim = d-1.
+ *     - Node sets: a side is part of the node set if and only if both of its vertices
+ *       are in the set (via upward adjacency, see mark_up_all). Those sides are assigned
+ *       class_id = node_set_id + max_side_set_id (offset to avoid collision
+ *       with side set IDs) and class_dim = d-1.
+ *   - Vertices (dim 0): never classified directly from sets. Classification is
+ *     derived by finalize_classification(), which projects downward from sides:
+ *     a vertex shared by sides of the same model entity inherits that entity's
+ *     classification; a vertex at the junction of sides belonging to different
+ *     model entities is classified on a lower-dimensional model entity (e.g.,
+ *     a model vertex, with class_id=-1).
+ *
+ * Node set, side set, and element block names are recorded in Omega_h::Mesh::class_sets
+ *   map (keyed by name, paired with their classification dimension and ID), and
+ *   optionally written to the .osh file, for later retrieval when writing back
+ *   to Exodus or another format.
+ *
+ * @warning Overlapping sets are not supported. If a side (or the sides implied
+ *   by a node set) appears in more than one set, the last write wins and
+ *   earlier classification is silently overwritten.
+ *
+ * @param[in] exodus_file          Open Exodus file handle.
+ * @param[in out] mesh          Output mesh; populated and classified by this call.
+ * @param[in] verbose       If true, print progress information to stdout.
+ * @param[in] classify_with Bitmask selecting classification sources:
+ *                          NODE_SETS, SIDE_SETS, or both.
+ */
 void read_mesh(int exodus_file, Mesh* mesh, bool verbose = false,
     int classify_with = NODE_SETS | SIDE_SETS);
+/** @brief Read nodal (vertex) fields from an open Exodus file into a mesh.
+ *
+ * Reads all nodal variables at the given 0-based @p time_step and adds them
+ * as tags on `Mesh::VERT`.  The mesh must already be populated by
+ * exodus::read_mesh().  Each Exodus variable named `<name>` becomes an
+ * Omega_h tag named `prefix + name + postfix`.
+ *
+ * When @p merge_components is true, variables matching `<base>_<N>` (zero- or
+ * one-based N) are combined into a single multi-component tag named `<base>`.
+ *
+ * @param[in]     exodus_file      Open Exodus file handle.
+ * @param[in,out] mesh             Mesh to add tags to.
+ * @param[in]     time_step        0-based time step index to read.
+ * @param[in]     prefix           Prepended to each tag name (default "").
+ * @param[in]     postfix          Appended to each tag name (default "").
+ * @param[in]     verbose          If true, print variable names to stdout.
+ * @param[in]     merge_components If true, reassemble `<base>_N` variables
+ *                                 into a single multi-component tag.
+ */
 void read_nodal_fields(int exodus_file, Mesh* mesh, int time_step,
     std::string const& prefix = "", std::string const& postfix = "",
-    bool verbose = false);
+    bool verbose = false, bool merge_components = false);
+/** @brief Read element fields from an open Exodus file into a mesh.
+ *
+ * Identical to exodus::read_nodal_fields() except that element variables
+ * (`EX_ELEM_BLOCK`) are read and stored as tags on the element dimension
+ * (`mesh->dim()`) rather than on vertices.
+ */
+void read_element_fields(int exodus_file, Mesh* mesh, int time_step,
+    std::string const& prefix = "", std::string const& postfix = "",
+    bool verbose = false, bool merge_components = false);
+typedef std::vector<std::string> FieldNames;
+/** @brief Write an Omega_h::Mesh to an Exodus II file.
+ *
+ * Writes mesh topology, nodal coordinates, geometric classification, and all
+ * floating-point nodal tags to a new Exodus file (clobbers any existing file).
+ * Element blocks are written one per unique element `class_id`; block names
+ * come from `Mesh::class_sets` or default to `block_<id>`.  Boundary surfaces
+ * are written as side sets and/or node sets depending on @p classify_with.
+ * Multi-component nodal tags are split into separate scalar Exodus variables
+ * named `<tag_name>_<component_index>`.
+ *
+ * @param[in] path                Path to the output `.e` / `.exo` file.
+ * @param[in] mesh                Mesh to write.
+ * @param[in] verbose             If true, print progress information to stdout.
+ * @param[in] classify_with       Bitmask of @c NODE_SETS and/or @c SIDE_SETS
+ *                                controlling which boundary set types to write.
+ * @param[in] excludedNodalFields Names of vertex tags to omit from output.
+ */
 void write(filesystem::path const& path, Mesh* mesh, bool verbose = false,
-    int classify_with = NODE_SETS | SIDE_SETS);
+    int classify_with = NODE_SETS | SIDE_SETS,
+    FieldNames excludedNodalFields = FieldNames());
+/** @brief Collectively read an Exodus II file into a distributed Omega_h::Mesh.
+ *
+ * Opens the Exodus file in parallel via MPI-IO and distributes contiguous
+ * slices of nodes and elements across all ranks of @p comm.
+ *
+ * Requires Omega_h built with `-DOmega_h_USE_MPI=ON` and an Exodus library
+ * compiled with `PARALLEL_AWARE_EXODUS`; otherwise calls `Omega_h_fail`.
+ *
+ * The Exodus file must contain:
+ *   - `coordx/y/z` — nodal coordinates (NetCDF variables)
+ *   - `connect<N>` — element-to-node connectivity per element block (1-based)
+ *
+ * @warning Node sets and side sets are not read; boundary classification
+ * is limited to exposed-side detection.
+ *
+ * @param[in] path             Path to the `.e` / `.exo` file.
+ * @param[in] comm             Omega_h communicator; all ranks must call collectively.
+ * @param[in] verbose          If true, rank 0 prints progress to stdout.
+ * @param[in] classify_with    Accepted for API consistency; currently ignored.
+ * @param[in] time_step        0-based time step to read (-1 = last step).
+ *                             Ignored when the file has no transient data.
+ * @param[in] merge_components If true, reassemble `<base>_N` nodal variables
+ *                             into a single multi-component tag.
+ * @return                     A fully distributed Omega_h::Mesh.
+ */
 Mesh read_sliced(filesystem::path const& path, CommPtr comm,
     bool verbose = false, int classify_with = NODE_SETS | SIDE_SETS,
-    int time_step = -1);
+    int time_step = -1, bool merge_components = false);
 }  // namespace exodus
 #endif
 
@@ -80,6 +257,11 @@ void write_parallel(filesystem::path const& filename, Mesh& mesh);
 
 }  // namespace gmsh
 
+namespace xgc {
+Mesh read(filesystem::path const& basename, CommPtr comm);
+void write(filesystem::path const& basename, Mesh* mesh);
+}  // namespace xgc
+
 namespace vtk {
 static constexpr bool do_compress = true;
 static constexpr bool dont_compress = false;
@@ -89,6 +271,7 @@ static constexpr bool dont_compress = false;
 #define OMEGA_H_DEFAULT_COMPRESS false
 #endif
 TagSet get_all_vtk_tags(Mesh* mesh, Int cell_dim);
+TagSet get_all_vtk_tags_mix(Mesh* mesh, Int cell_dim);
 void write_vtu(std::ostream& stream, Mesh* mesh, Int cell_dim,
     TagSet const& tags, bool compress = OMEGA_H_DEFAULT_COMPRESS);
 void write_vtu(filesystem::path const& filename, Mesh* mesh, Int cell_dim,
@@ -97,6 +280,10 @@ void write_vtu(std::string const& filename, Mesh* mesh, Int cell_dim,
     bool compress = OMEGA_H_DEFAULT_COMPRESS);
 void write_vtu(std::string const& filename, Mesh* mesh,
     bool compress = OMEGA_H_DEFAULT_COMPRESS);
+
+void write_vtu(filesystem::path const& filename, MixedMesh* mesh, Topo_type max_type,
+    bool compress = OMEGA_H_DEFAULT_COMPRESS);
+
 void write_parallel(filesystem::path const& path, Mesh* mesh, Int cell_dim,
     TagSet const& tags, bool compress = OMEGA_H_DEFAULT_COMPRESS);
 void write_parallel(std::string const& path, Mesh* mesh, Int cell_dim,
@@ -151,7 +338,7 @@ I32 read_version(filesystem::path const& path, CommPtr comm);
 void read_in_comm(
     filesystem::path const& path, CommPtr comm, Mesh* mesh, I32 version);
 
-constexpr I32 latest_version = 9;
+constexpr I32 latest_version = 11;
 
 template <typename T>
 void swap_bytes(T&);

@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.7.0...${CMAKE_VERSION})
+cmake_minimum_required(VERSION 3.18.0...${CMAKE_VERSION})
 
-project(Omega_h VERSION 9.34.7 LANGUAGES CXX)
-
+project(Omega_h VERSION 11.3.0 LANGUAGES CXX)
 set(Omega_h_USE_STK_DEFAULT OFF)
 option(Omega_h_USE_STK "Whether to build the STK interface" ${Omega_h_USE_STK_DEFAULT})
 
@@ -17,7 +16,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 bob_begin_package()
 
-bob_option(Omega_h_CHECK_BOUNDS "Check array bounds (makes code slow too)" OFF)
+bob_option(Omega_h_CHECK_BOUNDS "Check array bounds when running on host (makes code slow too)" OFF)
 bob_option(Omega_h_THROW "Errors throw exceptions instead of abort" ${USE_XSDK_DEFAULTS})
 bob_input(Omega_h_DATA "" PATH "Path to omega_h-data test files")
 bob_option(Omega_h_USE_EGADS "Use EGADS from ESP for geometry" OFF)
@@ -26,13 +25,18 @@ bob_input(EGADS_PREFIX "" PATH "EGADS (or ESP) installation directory")
 bob_input(EGADSlite_PREFIX "" PATH "EGADSlite (or ESP) installation directory")
 bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
-bob_option(Omega_h_USE_CUDA_AWARE_MPI "Assume MPI is CUDA-aware, make use of that" OFF)
+bob_option(OMEGA_H_USE_GPU_AWARE_MPI "Assume MPI is GPU-aware, make use of that" OFF)
+bob_option(Omega_h_USE_SimModSuite "Enable reading Simmetrix MeshSim meshes" OFF)
+bob_option(Omega_h_USE_SimDiscrete "Enable reading and creating Simmetrix Discrete models" OFF)
+bob_option(Omega_h_USE_ADIOS2 "Enable ADIOS2" OFF)
 bob_input(Omega_h_VALGRIND "" STRING "Valgrind plus arguments for testing")
 bob_option(Omega_h_EXAMPLES "Compile examples" OFF)
 
 bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
 bob_option(Omega_h_ENABLE_DEMANGLED_STACKTRACE "Add linker options to enable human-readable stacktraces on gnu-c platforms." OFF)
 bob_option(Omega_h_DBG "Enable debug prints, stacktraces, etc." OFF)
+bob_option(Omega_h_GPU_CHECK "Run GPU check after each test" OFF) #the check command is hardcoded!
+bob_option(Omega_h_USE_CTAGS "Generate Ctags" OFF)
 
 if (Omega_h_ENABLE_DEMANGLED_STACKTRACE)
   message(STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}")
@@ -46,15 +50,19 @@ endif()
 if (Omega_h_USE_MPI)
   enable_language(C)
   set(MPI_REQUIRED_VERSION 3)
-  bob_add_dependency(PUBLIC NAME MPI TARGETS MPI::MPI_CXX)
+  bob_add_dependency(PUBLIC NAME MPI COMPONENTS CXX TARGETS MPI::MPI_CXX)
 endif()
 
 set(Omega_h_USE_ZLIB_DEFAULT ON)
 bob_add_dependency(PUBLIC NAME ZLIB TARGETS ZLIB::ZLIB)
 
+set(Kokkos_REQUIRED_VERSION 4.0)
 set(Omega_h_USE_Kokkos_DEFAULT OFF)
 set(KokkosCore_PREFIX_DEFAULT ${Kokkos_PREFIX})
 bob_add_dependency(PUBLIC NAME Kokkos TARGETS Kokkos::kokkos)
+if (Omega_h_USE_Kokkos)
+  set_target_properties(Kokkos::kokkos PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+endif()
 
 set(libMeshb_REQUIRED_VERSION 7.24)
 set(Omega_h_USE_libMeshb_DEFAULT OFF)
@@ -76,32 +84,53 @@ bob_add_dependency(PRIVATE NAME Gmodel TARGETS gmodel)
 
 set(Omega_h_USE_SEACASExodus_DEFAULT OFF)
 set(SEACASExodus_PREFIX_DEFAULT ${Trilinos_PREFIX})
-bob_add_dependency(PUBLIC NAME SEACASExodus
-    TARGETS exodus
-    INCLUDE_DIR_VARS
-      SEACASExodus_INCLUDE_DIRS
-      SEACASExodus_TPL_INCLUDE_DIRS
-    LIBRARY_VARS SEACASExodus_TPL_LIBRARIES)
-if (Omega_h_USE_SEACASExodus)
-  set(Omega_h_USE_HDF5_DEFAULT ON)
-  bob_add_dependency(PUBLIC NAME HDF5 CONFIG)
-endif()
+bob_add_dependency(PUBLIC NAME SEACASExodus TARGETS SEACASExodus::all_libs)
 
 set(Omega_h_USE_pybind11_DEFAULT OFF)
 bob_public_dep(pybind11)
 
-include(${CMAKE_CURRENT_LIST_DIR}/cmake/detect_kokkos_opts.cmake)
-detect_kokkos_opts()
-if (Kokkos_HAS_CUDA AND (NOT Kokkos_HAS_CUDA_LAMBDA))
-  message(FATAL_ERROR
-          "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
+if(Omega_h_USE_Kokkos)
+  bob_option(Omega_h_USE_Kokkos_Sort "Use Kokkos sort_by_key instead of vendor (Thrust, SYCL, etc.) provided sorting APIs." ON)
+  if(Omega_h_USE_Kokkos_Sort AND Kokkos_VERSION VERSION_LESS 4.3)
+    message(SEND_ERROR "Kokkos sort_by_key requires Kokkos >= 4.3, found version ${Kokkos_VERSION}")
+  endif()
+  if ("OPENMP" IN_LIST Kokkos_DEVICES)
+      bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "ON")
+  endif()
+  if ("SYCL" IN_LIST Kokkos_DEVICES)
+      bob_option(Omega_h_USE_SYCL "Whether to use SYCL" "ON")
+  endif()
+  if (Kokkos_VERSION VERSION_LESS 4.1)
+    if (Kokkos_ENABLE_CUDA AND (NOT "CUDA_LAMBDA" IN_LIST Kokkos_OPTIONS))
+      message(FATAL_ERROR
+              "Please reconfigure Kokkos with -DKokkos_ENABLE_Cuda_Lambda:BOOL=ON")
+    endif()
+  endif()
 endif()
 
-bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
-bob_option(Omega_h_USE_CUDA "Whether to use CUDA" "${Kokkos_HAS_CUDA}")
+bob_option(Omega_h_MEM_SPACE_SHARED "Whether to use shared memory space" OFF)
+bob_option(Omega_h_MEM_SPACE_HOSTPINNED "Whether to use host pinned memory space" OFF)
+if ((Kokkos_ENABLE_CUDA OR Kokkos_ENABLE_HIP OR Kokkos_ENABLE_SYCL) AND NOT (Omega_h_MEM_SPACE_SHARED OR Omega_h_MEM_SPACE_HOSTPINNED))
+  bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" ON)
+else()
+  bob_option(Omega_h_MEM_SPACE_DEVICE "Whether to use GPU memory space" OFF)
+endif()
 
-if (Omega_h_USE_CUDA)
-  enable_language(CUDA)
+if ((Omega_h_MEM_SPACE_DEVICE AND Omega_h_MEM_SPACE_HOSTPINNED) OR 
+    (Omega_h_MEM_SPACE_DEVICE AND Omega_h_MEM_SPACE_SHARED) OR 
+    (Omega_h_MEM_SPACE_SHARED AND Omega_h_MEM_SPACE_HOSTPINNED))
+  message(FATAL_ERROR "Only one memory space allowed from these options: [ Omega_h_MEM_SPACE_SHARED, Omega_h_MEM_SPACE_HOSTPINNED, Omega_h_MEM_SPACE_DEVICE ]")
+endif()
+
+bob_option(Omega_h_USE_MPI "Use MPI for parallelism" OFF)
+bob_option(Omega_h_USE_OpenMP "Whether to use OpenMP" "${Kokkos_HAS_OpenMP}")
+
+if (Kokkos_ENABLE_CUDA)
+  #check for bad combos
+  if(Omega_h_CHECK_BOUNDS)
+    message(FATAL_ERROR "Bounds checking is only supported on the host, "
+      "build Kokkos without CUDA enabled or disable bounds checking")
+  endif()
 endif()
 
 include(cmake/osh_use_dolfin.cmake)
@@ -114,18 +143,26 @@ set(Omega_h_KEY_BOOLS
     Omega_h_ENABLE_DEMANGLED_STACKTRACE
     Omega_h_DBG
     Omega_h_USE_Kokkos
+    Omega_h_USE_Kokkos_Sort
     Omega_h_USE_OpenMP
-    Omega_h_USE_CUDA
+    Omega_h_USE_SYCL
+    Omega_h_USE_HIP
+    Omega_h_MEM_SPACE_DEVICE
+    Omega_h_MEM_SPACE_SHARED
+    Omega_h_MEM_SPACE_HOSTPINNED
     Omega_h_USE_ZLIB
     Omega_h_USE_libMeshb
     Omega_h_USE_EGADS
     Omega_h_USE_EGADSlite
     Omega_h_USE_SEACASExodus
+    Omega_h_USE_SimModSuite
+    Omega_h_USE_SimDiscrete
+    Omega_h_USE_ADIOS2
     Omega_h_USE_DOLFIN
     Omega_h_USE_dwarf
     Omega_h_CHECK_BOUNDS
     Omega_h_THROW
-    Omega_h_USE_CUDA_AWARE_MPI
+    OMEGA_H_USE_GPU_AWARE_MPI
     Omega_h_USE_Gmsh
     Omega_h_IS_SHARED
    )
@@ -155,18 +192,10 @@ if(Omega_h_EXAMPLES)
   add_subdirectory(example/laplacian)
   if(Omega_h_USE_DOLFIN)
     set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    string(REPLACE " -Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     add_subdirectory(example/fenics/cpp)
     set(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
   endif()
 endif()
 add_subdirectory(src)
-
-if (Omega_h_USE_CUDA)
-  install(PROGRAMS
-      ${CMAKE_CURRENT_SOURCE_DIR}/bin/nvcc_wrapper
-      DESTINATION bin)
-endif()
-
 
 bob_end_package()

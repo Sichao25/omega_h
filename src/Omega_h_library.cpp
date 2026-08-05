@@ -12,6 +12,13 @@
 #include <sstream>
 #include <string>
 
+#if defined(OMEGA_H_USE_SIMMODSUITE)
+#include "MeshSim.h"
+#if defined(OMEGA_H_USE_SIMDISCRETE)
+#include "SimDiscrete.h"
+#endif
+#endif
+
 #ifdef OMEGA_H_DBG
 Omega_h::Comm *DBG_COMM = 0;
 bool dbg_print_global = false;
@@ -33,7 +40,7 @@ char const* Library::static_configure_options() { return OMEGA_H_CMAKE_ARGS; }
 
 char const* Library::configure_options() { return static_configure_options(); }
 
-#if defined(__x86_64__) || defined(_M_X64) && (!defined(OMEGA_H_USE_CUDA))
+#if defined(__x86_64__) || defined(_M_X64) && (!defined(KOKKOS_ENABLE_CUDA))
 #include <xmmintrin.h>
 // Intel system
 static void enable_floating_point_exceptions() {
@@ -67,10 +74,10 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
     std::string msg_str = msg.str();
     Omega_h::fail("%s\n", msg_str.c_str());
   }
-  OMEGA_H_CHECK(argc != nullptr);
-  OMEGA_H_CHECK(argv != nullptr);
-  for (int ic = 0; ic < *argc; ic++) {
-    argv_.push_back((*argv)[ic]);
+  if(argc) {
+    for (int ic = 0; ic < *argc; ic++) {
+      argv_.push_back((*argv)[ic]);
+    }
   }
 #ifdef OMEGA_H_USE_MPI
   int mpi_is_init;
@@ -101,7 +108,7 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
   cmdline.add_flag(
       "--osh-time-percent", "print amount of time spend in certain functions by percentage");
   auto& osh_time_chop_flag = cmdline.add_flag(
-      "--osh-time-chop", "only print functions whose percent time is greater than given value (e.g. --osh-time-chop=2)");
+      "--osh-time-chop", "only print functions whose percent time is greater than given value (e.g. --osh-time[-percent] --osh-time-chop 2)");
   osh_time_chop_flag.add_arg<double>("0.0");
   cmdline.add_flag("--osh-time-with-filename", "add file name to function name in profile output");
 
@@ -116,7 +123,8 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
       cmdline.add_flag("--osh-mpi-ranks-per-node", "mpi ranks per node (for CUDA+MPI)");
   mpi_ranks_flag.add_arg<int>("value");
   if (argc && argv) {
-    OMEGA_H_CHECK(cmdline.parse(world_, argc, *argv));
+    bool parse_success = cmdline.parse(world_, argc, *argv);
+    OMEGA_H_CHECK(parse_success);
   }
   bool add_filename = false;
   if (cmdline.parsed("--osh-time-with-filename")) {
@@ -141,37 +149,27 @@ void Library::initialize(char const* head_desc, int* argc, char*** argv
   silent_ = cmdline.parsed("--osh-silent");
 #ifdef OMEGA_H_USE_KOKKOS
   if (!Kokkos::is_initialized()) {
-    OMEGA_H_CHECK(argc != nullptr);
-    OMEGA_H_CHECK(argv != nullptr);
-    Kokkos::initialize(*argc, *argv);
+    if(argv != nullptr && argc != nullptr) {
+      Kokkos::initialize(*argc, *argv);
+    }
+    else {
+      Kokkos::initialize();
+    }
     we_called_kokkos_init = true;
   } else {
     we_called_kokkos_init = false;
   }
 #endif
-#if defined(OMEGA_H_USE_CUDA) && defined(OMEGA_H_USE_MPI) \
-  && (!defined(OMEGA_H_USE_KOKKOS))
-  if (cmdline.parsed("--osh-mpi-ranks-per-node")) {
-    int rank, ndevices_per_node, my_device;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    cudaGetDeviceCount(&ndevices_per_node);
-    int mpi_ranks_per_node =
-      cmdline.get<int>("--osh-mpi-ranks-per-node", "value");
-    int local_mpi_rank = rank % mpi_ranks_per_node;
-    cudaSetDevice(local_mpi_rank);
-    cudaGetDevice(&my_device);
-    PCOUT("ndevices_per_node= " << ndevices_per_node << " mpi_ranks_per_node= " << mpi_ranks_per_node << " local_mpi_rank= " << local_mpi_rank << std::endl);
-    OMEGA_H_CHECK_OP(mpi_ranks_per_node, ==, ndevices_per_node);
-    OMEGA_H_CHECK_OP(my_device, ==, local_mpi_rank);
-  }
-#endif
   if (cmdline.parsed("--osh-signal")) Omega_h::protect();
-#if defined(OMEGA_H_USE_CUDA) && (!defined(OMEGA_H_USE_KOKKOS))
-  // trigger lazy initialization of the CUDA runtime
-  // and prevent it from polluting later timings
-  cudaFree(nullptr);
-#endif
   if (cmdline.parsed("--osh-pool")) enable_pooling();
+#if defined(OMEGA_H_USE_SIMMODSUITE)
+  MS_init();
+  SimModel_start();
+  Sim_readLicenseFile(NULL);
+  #if defined(OMEGA_H_USE_SIMDISCRETE)
+  SimDiscrete_start(0);
+  #endif
+#endif
 }
 
 Library::Library(Library const& other)
@@ -207,6 +205,7 @@ Library::~Library() {
   disable_pooling();
 #ifdef OMEGA_H_USE_KOKKOS
   if (we_called_kokkos_init) {
+    KokkosPool::destroyGlobalPool();
     Kokkos::finalize();
     we_called_kokkos_init = false;
   }
@@ -216,6 +215,13 @@ Library::~Library() {
     OMEGA_H_CHECK(MPI_SUCCESS == MPI_Finalize());
     we_called_mpi_init = false;
   }
+#endif
+#if defined(OMEGA_H_USE_SIMMODSUITE)
+  MS_exit();
+  #if defined(OMEGA_H_USE_SIMDISCRETE)
+  SimDiscrete_stop(0);
+  #endif
+  SimModel_stop();
 #endif
   delete[] Omega_h::max_memory_stacktrace;
 }

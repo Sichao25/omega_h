@@ -235,6 +235,10 @@ static void test_hilbert() {
 }
 
 static void test_bbox() {
+  OMEGA_H_CHECK(are_close(BBox<2>(vector_2(-10, -15), vector_2(-1, -1)),
+      find_bounding_box<2>(Reals({-3, -12, -10, -1, -1, -15, -3, -2}))));
+  OMEGA_H_CHECK(are_close(BBox<2>(vector_2(1, 1), vector_2(10, 15)),
+      find_bounding_box<2>(Reals({3, 12, 10, 1, 1, 15, 3, 2}))));
   OMEGA_H_CHECK(are_close(BBox<2>(vector_2(-3, -3), vector_2(3, 3)),
       find_bounding_box<2>(Reals({0, -3, 3, 0, 0, 3, -3, 0}))));
   OMEGA_H_CHECK(are_close(BBox<3>(vector_3(-3, -3, -3), vector_3(3, 3, 3)),
@@ -243,6 +247,11 @@ static void test_bbox() {
 }
 
 static void test_build(Library* lib) {
+  {
+    auto one_if_3d = 1;
+    auto mesh = build_box(
+      lib->world(), OMEGA_H_SIMPLEX, 1., 1., one_if_3d, 4, 4, 4 * one_if_3d);
+  }
   {
     Mesh mesh(lib);
     build_from_elems2verts(&mesh, OMEGA_H_SIMPLEX, 2, LOs({0, 1, 2}), 3);
@@ -741,9 +750,26 @@ static void test_hypercube_split_template() {
   OMEGA_H_CHECK(compare_hst(3, 3, 7, 7, {0, 7}));
 }
 
+void test_copy_constructor(Library* lib)
+{
+  auto world = lib->world();
+  fprintf(stderr, "before build_box\n");
+  auto mesh_a = build_box(world, OMEGA_H_SIMPLEX, 1.0, 1.0, 1.0, 1, 1, 1,false);
+  fprintf(stderr, "after build_box mesh_a at %p\n", &mesh_a);
+  auto mesh_b = mesh_a;
+  fprintf(stderr, "mesh_b = mesh_a, mesh_b at %p\n", &mesh_b);
+  OMEGA_H_CHECK(mesh_a.coords() == mesh_b.coords());
+  Write<Real> two_coords_w(mesh_a.coords().size());
+  Omega_h::parallel_for(two_coords_w.size(), OMEGA_H_LAMBDA(LO i){ two_coords_w[i]=2.0; });
+  Read<Real> two_coords(two_coords_w);
+  mesh_b.set_coords(two_coords);
+  OMEGA_H_CHECK(!(mesh_a.coords() == mesh_b.coords()));
+}
+
 int main(int argc, char** argv) {
   auto lib = Library(&argc, &argv);
   OMEGA_H_CHECK(std::string(lib.version()) == OMEGA_H_SEMVER);
+  test_build(&lib);
   test_down_template();
   test_tri_align();
   test_form_uses();
@@ -751,7 +777,6 @@ int main(int argc, char** argv) {
   test_find_unique();
   test_hilbert();
   test_bbox();
-  test_build(&lib);
   test_star(&lib);
   test_dual(&lib);
   test_quality();
@@ -768,4 +793,5 @@ int main(int argc, char** argv) {
   test_proximity(&lib);
   test_1d_box(&lib);
   test_hypercube_split_template();
+  test_copy_constructor(&lib);
 }

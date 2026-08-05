@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "Omega_h_for.hpp"
+#include "Omega_h_malloc.hpp"
 
 namespace Omega_h {
 
@@ -27,15 +28,23 @@ T* nonnull(T* p) {
 
 #ifdef OMEGA_H_USE_KOKKOS
 template <typename T>
-Write<T>::Write(Kokkos::View<T*> view_in) : view_(view_in) {}
+Write<T>::Write(View<T*> view_in) : view_(view_in) { }
 #endif
 
 template <typename T>
 Write<T>::Write(LO size_in, std::string const& name_in) {
   begin_code("Write allocation");
+  OMEGA_H_CHECK(size_in >= 0);
 #ifdef OMEGA_H_USE_KOKKOS
-  view_ = decltype(view_)(Kokkos::ViewAllocateWithoutInitializing(name_in),
-      static_cast<std::size_t>(size_in));
+  if (is_pooling_enabled()) {
+#if defined(OMEGA_H_COMPILING_FOR_HOST)
+    manager_ = SharedRef<KokkosViewWrapper<T>>(size_in, name_in);
+    view_ = manager_->getView();
+#endif
+  } else {
+    view_ = decltype(view_)(Kokkos::ViewAllocateWithoutInitializing(name_in),
+        static_cast<std::size_t>(size_in));
+  }
 #else
   shared_alloc_ = decltype(shared_alloc_)(
       sizeof(T) * static_cast<std::size_t>(size_in), name_in);
@@ -79,7 +88,7 @@ Write<T>::Write(std::initializer_list<T> l, std::string const& name_in)
 #ifdef OMEGA_H_USE_KOKKOS
 template <typename T>
 std::string Write<T>::name() const {
-  return view_.label();
+  return manager_ ? manager_->label() : view_.label();
 }
 #else
 template <typename T>
@@ -95,8 +104,8 @@ void Write<T>::set(LO i, T value) const {
     OMEGA_H_CHECK(0 <= i);
     OMEGA_H_CHECK(i < size());
 #endif
-#ifdef OMEGA_H_USE_CUDA
-  cudaMemcpy(data() + i, &value, sizeof(T), cudaMemcpyHostToDevice);
+#if defined(OMEGA_H_USE_KOKKOS)
+  Kokkos::deep_copy(Kokkos::subview(view_,i),value);
 #else
   operator[](i) = value;
 #endif
@@ -109,52 +118,14 @@ T Write<T>::get(LO i) const {
     OMEGA_H_CHECK(0 <= i);
     OMEGA_H_CHECK(i < size());
 #endif
-#ifdef OMEGA_H_USE_CUDA
+#if defined(OMEGA_H_USE_KOKKOS)
   T value;
-  cudaMemcpy(&value, data() + i, sizeof(T), cudaMemcpyDeviceToHost);
+  Kokkos::deep_copy(value, Kokkos::subview(view_,i));
   return value;
 #else
   return operator[](i);
 #endif
 }
-
-Bytes::Bytes(Write<Byte> write) : Read<Byte>(write) {}
-
-Bytes::Bytes(LO size_in, Byte value, std::string const& name_in)
-    : Read<Byte>(size_in, value, name_in) {}
-
-Bytes::Bytes(std::initializer_list<Byte> l, std::string const& name_in)
-    : Read<Byte>(l, name_in) {}
-
-LOs::LOs(Write<LO> write) : Read<LO>(write) {}
-
-LOs::LOs(LO size_in, LO value, std::string const& name_in)
-    : Read<LO>(size_in, value, name_in) {}
-
-LOs::LOs(LO size_in, LO offset, LO stride, std::string const& name_in)
-    : Read<LO>(size_in, offset, stride, name_in) {}
-
-LOs::LOs(std::initializer_list<LO> l, std::string const& name_in)
-    : Read<LO>(l, name_in) {}
-
-GOs::GOs(Write<GO> write) : Read<GO>(write) {}
-
-GOs::GOs(LO size_in, GO value, std::string const& name_in)
-    : Read<GO>(size_in, value, name_in) {}
-
-GOs::GOs(LO size_in, GO offset, GO stride, std::string const& name_in)
-    : Read<GO>(size_in, offset, stride, name_in) {}
-
-GOs::GOs(std::initializer_list<GO> l, std::string const& name_in)
-    : Read<GO>(l, name_in) {}
-
-Reals::Reals(Write<Real> write) : Read<Real>(write) {}
-
-Reals::Reals(LO size_in, Real value, std::string const& name_in)
-    : Read<Real>(size_in, value, name_in) {}
-
-Reals::Reals(std::initializer_list<Real> l, std::string const& name_in)
-    : Read<Real>(l, name_in) {}
 
 template <typename T>
 Read<T>::Read(Write<T> write) : write_(write) {}
@@ -173,8 +144,8 @@ Read<T>::Read(std::initializer_list<T> l, std::string const& name_in)
 
 #ifdef OMEGA_H_USE_KOKKOS
 template <typename T>
-Kokkos::View<const T*> Read<T>::view() const {
-  return Kokkos::View<const T*>(write_.view());
+View<const T*> Read<T>::view() const {
+  return View<const T*>(write_.view());
 }
 #endif
 
@@ -195,10 +166,10 @@ T Read<T>::last() const {
 
 #ifdef OMEGA_H_USE_KOKKOS
 template <class T, class... P>
-inline typename Kokkos::View<T, P...>::HostMirror create_uninit_mirror(
+inline typename Kokkos::View<T, P...>::host_mirror_type create_uninit_mirror(
     const Kokkos::View<T, P...>& src) {
   typedef Kokkos::View<T, P...> src_type;
-  typedef typename src_type::HostMirror dst_type;
+  typedef typename src_type::host_mirror_type dst_type;
   static_assert(src_type::rank == 1, "Hardcoded for 1D Views!");
   return dst_type(Kokkos::ViewAllocateWithoutInitializing(
                       std::string("host_") + src.label()),
@@ -206,25 +177,25 @@ inline typename Kokkos::View<T, P...>::HostMirror create_uninit_mirror(
 }
 
 template <class T, class... P>
-inline typename Kokkos::View<T, P...>::HostMirror create_uninit_mirror_view(
+inline typename Kokkos::View<T, P...>::host_mirror_type create_uninit_mirror_view(
     const Kokkos::View<T, P...>& src,
     typename std::enable_if<(
         std::is_same<typename Kokkos::View<T, P...>::memory_space,
-            typename Kokkos::View<T, P...>::HostMirror::memory_space>::value &&
+            typename Kokkos::View<T, P...>::host_mirror_type::memory_space>::value &&
         std::is_same<typename Kokkos::View<T, P...>::data_type,
-            typename Kokkos::View<T, P...>::HostMirror::data_type>::value)>::
+            typename Kokkos::View<T, P...>::host_mirror_type::data_type>::value)>::
         type* = nullptr) {
   return src;
 }
 
 template <class T, class... P>
-inline typename Kokkos::View<T, P...>::HostMirror create_uninit_mirror_view(
+inline typename Kokkos::View<T, P...>::host_mirror_type create_uninit_mirror_view(
     const Kokkos::View<T, P...>& src,
     typename std::enable_if<!(
         std::is_same<typename Kokkos::View<T, P...>::memory_space,
-            typename Kokkos::View<T, P...>::HostMirror::memory_space>::value &&
+            typename Kokkos::View<T, P...>::host_mirror_type::memory_space>::value &&
         std::is_same<typename Kokkos::View<T, P...>::data_type,
-            typename Kokkos::View<T, P...>::HostMirror::data_type>::value)>::
+            typename Kokkos::View<T, P...>::host_mirror_type::data_type>::value)>::
         type* = nullptr) {
   return create_uninit_mirror(src);
 }
@@ -237,11 +208,7 @@ HostWrite<T>::HostWrite(LO size_in, std::string const& name_in)
       ,
       mirror_(create_uninit_mirror_view(write_.view()))
 #endif
-{
-#if (!defined(OMEGA_H_USE_KOKKOS)) && defined(OMEGA_H_USE_CUDA)
-  mirror_.reset(new T[std::size_t(write_.size())]);
-#endif
-}
+{}
 
 template <typename T>
 HostWrite<T>::HostWrite(
@@ -258,11 +225,6 @@ HostWrite<T>::HostWrite(Write<T> write_in)
 {
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::deep_copy(mirror_, write_.view());
-#elif defined(OMEGA_H_USE_CUDA)
-  mirror_.reset(new T[std::size_t(write_.size())]);
-  auto const err = cudaMemcpy(mirror_.get(), write_.data(),
-      std::size_t(write_.size()) * sizeof(T), cudaMemcpyDeviceToHost);
-  OMEGA_H_CHECK(err == cudaSuccess);
 #endif
 }
 
@@ -279,10 +241,6 @@ Write<T> HostWrite<T>::write() const {
   ScopedTimer timer("array host to device");
 #ifdef OMEGA_H_USE_KOKKOS
   Kokkos::deep_copy(write_.view(), mirror_);
-#elif defined(OMEGA_H_USE_CUDA)
-  auto const err = cudaMemcpy(write_.data(), mirror_.get(),
-      std::size_t(size()) * sizeof(T), cudaMemcpyHostToDevice);
-  OMEGA_H_CHECK(err == cudaSuccess);
 #endif
   return write_;
 }
@@ -296,8 +254,6 @@ template <typename T>
 T* HostWrite<T>::data() const {
 #ifdef OMEGA_H_USE_KOKKOS
   return mirror_.data();
-#elif defined(OMEGA_H_USE_CUDA)
-  return mirror_.get();
 #else
   return write_.data();
 #endif
@@ -311,8 +267,6 @@ void HostWrite<T>::set(LO i, T value) {
 #endif
 #ifdef OMEGA_H_USE_KOKKOS
   mirror_[i] = value;
-#elif defined(OMEGA_H_USE_CUDA)
-  mirror_[std::size_t(i)] = value;
 #else
   write_[i] = value;
 #endif
@@ -322,8 +276,6 @@ template <typename T>
 T HostWrite<T>::get(LO i) const {
 #ifdef OMEGA_H_USE_KOKKOS
   return mirror_[i];
-#elif defined(OMEGA_H_USE_CUDA)
-  return mirror_[std::size_t(i)];
 #else
   return write_[i];
 #endif
@@ -333,15 +285,10 @@ template <typename T>
 HostRead<T>::HostRead(Read<T> read) : read_(read) {
   ScopedTimer timer("array device to host");
 #ifdef OMEGA_H_USE_KOKKOS
-  Kokkos::View<const T*> dev_view = read.view();
+  View<const T*> dev_view = read.view();
   Kokkos::View<const T*, Kokkos::HostSpace> h_view =
       Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), read.view());
   mirror_ = h_view;
-#elif defined(OMEGA_H_USE_CUDA)
-  mirror_.reset(new T[std::size_t(read_.size())]);
-  auto const err = cudaMemcpy(mirror_.get(), read_.data(),
-      std::size_t(size()) * sizeof(T), cudaMemcpyDeviceToHost);
-  OMEGA_H_CHECK(err == cudaSuccess);
 #endif
 }
 
@@ -354,8 +301,6 @@ template <typename T>
 T const* HostRead<T>::data() const {
 #if defined(OMEGA_H_USE_KOKKOS)
   return mirror_.data();
-#elif defined(OMEGA_H_USE_CUDA)
-  return mirror_.get();
 #else
   return read_.data();
 #endif

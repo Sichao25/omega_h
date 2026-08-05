@@ -1,3 +1,11 @@
+#include <Omega_h_config.h>
+#if defined(OMEGA_H_USE_SYCL)
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#endif
+#if defined(OMEGA_H_USE_KOKKOS_SORT)
+#include <Kokkos_Sort.hpp>
+#endif
 #include <Omega_h_int_iterator.hpp>
 #include <Omega_h_scan.hpp>
 #include <Omega_h_sort.hpp>
@@ -5,7 +13,7 @@
 #include <algorithm>
 #include <vector>
 
-#if defined(OMEGA_H_USE_CUDA)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
 
 #if defined(__clang__)
 template <class... Args>
@@ -42,10 +50,11 @@ namespace Omega_h {
 template <typename T, typename Comp>
 static void parallel_sort(T* b, T* e, Comp c) {
   begin_code("parallel_sort");
-#if defined(OMEGA_H_USE_CUDA)
-  auto bptr = thrust::device_ptr<T>(b);
-  auto eptr = thrust::device_ptr<T>(e);
-  thrust::stable_sort(bptr, eptr, c);
+#if defined(OMEGA_H_USE_KOKKOS) and defined(OMEGA_H_USE_SYCL)
+  auto space = Kokkos::Experimental::SYCL();
+  const auto q = space.sycl_queue();
+  auto policy = ::oneapi::dpl::execution::make_device_policy(q);
+  oneapi::dpl::sort(policy,b,e,c);
 #elif defined(OMEGA_H_USE_OPENMP)
   pss::parallel_stable_sort(b, e, c);
 #else
@@ -64,7 +73,7 @@ struct CompareKeySets {
       T y = keys_[b * N + i];
       if (x != y) return x < y;
     }
-    return false;
+    return a < b;
   }
 };
 
@@ -76,8 +85,15 @@ static LOs sort_by_keys_tmpl(Read<T> keys) {
   LO* begin = perm.data();
   LO* end = perm.data() + n;
   T const* keyptr = keys.data();
+#if defined(OMEGA_H_USE_KOKKOS_SORT)
+  using ExecSpace = Kokkos::DefaultExecutionSpace;
+  ExecSpace space{}; 
+  Write<LO> base(n, 0, 1);
+  Kokkos::Experimental::sort_by_key(space, base.view(), perm.view(), CompareKeySets<T, N>(keyptr));
+#else
   parallel_sort<LO, CompareKeySets<T, N>>(
       begin, end, CompareKeySets<T, N>(keyptr));
+#endif
   end_code();
   return perm;
 }
@@ -98,28 +114,50 @@ INST(GO)
 
 template <typename T>
 T next_smallest_value(Read<T> const a, T const value) {
-  auto const first = IntIterator(0);
-  auto const last = IntIterator(a.size());
   auto const init = ArithTraits<T>::max();
-  auto const op = minimum<T>();
   auto transform = OMEGA_H_LAMBDA(LO i)->T {
     return (a[i] > value) ? a[i] : init;
   };
+  auto const op = minimum<T>();
+#if defined(OMEGA_H_USE_KOKKOS)
+  auto res = init;
+  Kokkos::parallel_reduce(
+    Kokkos::RangePolicy<>(0, a.size() ),
+    KOKKOS_LAMBDA(int i, T& update) {
+      update = op(update,transform(i));
+    }, Kokkos::Min<T>(res) );
+  return res;
+#else
+  auto const first = IntIterator(0);
+  auto const last = IntIterator(a.size());
   return transform_reduce(first, last, init, op, std::move(transform));
+#endif
 }
 
 template <typename T>
 LO number_same_values(
     Read<T> const a, T const value, Write<LO> const tmp_perm) {
   tmp_perm.set(0, 0);
+  auto transform = OMEGA_H_LAMBDA(LO i)->LO {
+    LO v = (a[i] == value) ? LO(1) : LO(0);
+    return v;
+  };
+#if defined(OMEGA_H_USE_KOKKOS)
+  Kokkos::parallel_scan(
+    Kokkos::RangePolicy<>(0, a.size() ),
+    KOKKOS_LAMBDA(int i, LO& update, const bool final) {
+      update += transform(i);
+      if(final) {
+        tmp_perm[i+1] = update;
+      }
+    });
+#else
   auto const first = IntIterator(0);
   auto const last = IntIterator(a.size());
   auto const result = tmp_perm.begin() + 1;
   auto const op = plus<LO>();
-  auto transform = [=] __host__ __device__ (LO i)->LO {
-    return a[i] == value ? LO(1) : LO(0);
-  };
   transform_inclusive_scan(first, last, result, op, std::move(transform));
+#endif
   return read(tmp_perm).last();
 }
 

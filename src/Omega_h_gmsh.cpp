@@ -90,6 +90,8 @@ Int gmsh_type(Omega_h_Family family, Int dim) {
           return GMSH_HEX;
       }
       return -1;
+    case OMEGA_H_MIXED:
+      return -1;
   }
   return -1;
 }
@@ -98,6 +100,11 @@ void seek_line(std::istream& stream, std::string const& want) {
   OMEGA_H_CHECK(stream);
   std::string line;
   while (std::getline(stream, line)) {
+    // Strip Windows CR
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+
     if (line == want) {
       break;
     }
@@ -482,6 +489,35 @@ void read_internal(std::istream& stream, Mesh* mesh) {
   } else {
     Omega_h_fail("There were no Elements of dimension higher than zero!\n");
   }
+
+  // Check that 2D meshes lie on the XY plane via bounding box extents.
+  // omega_h only keeps x and y for 2D.
+  if (max_dim == 2) {
+    OMEGA_H_CHECK(!node_coords.empty());
+    Vector<3> bbox_min = node_coords[0];
+    Vector<3> bbox_max = node_coords[0];
+    for (const auto& coords : node_coords) {
+      for (Int j = 0; j < 3; ++j) {
+        bbox_min[j] = std::min(bbox_min[j], coords[j]);
+        bbox_max[j] = std::max(bbox_max[j], coords[j]);
+      }
+    }
+    Vector<3> extent;
+    for (Int j = 0; j < 3; ++j) {
+      extent[j] = bbox_max[j] - bbox_min[j];
+    }
+    Real tol = 1e-12 * std::max(extent[0], extent[1]);
+    if (extent[2] > tol) {
+      Omega_h_fail(
+          "2D meshes must lie on the XY plane, but the bounding box has "
+          "non-zero extent in Z: [z_extent=%e]\n", extent[2]);
+    }
+    OMEGA_H_CHECK_PRINTF(extent[0] > tol,
+        "Bounding box has zero extent in X: [x_extent=%e]\n", extent[0]);
+    OMEGA_H_CHECK_PRINTF(extent[1] > tol,
+        "Bounding box has zero extent in Y: [y_extent=%e]\n", extent[1]);
+  }
+
   HostWrite<Real> host_coords(nnodes * max_dim);
   for (LO i = 0; i < nnodes; ++i) {
     for (Int j = 0; j < max_dim; ++j) {
@@ -552,15 +588,15 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
   if (nnodes == 0) {
     Omega_h_fail("Please check that filename is correct!\n");
   }
+
   std::map<GO, LO> node_number_map;
-  HostWrite<GO> host_vert_globals(nnodes);
+  HostWrite<GO> h_vert_globals_w(nnodes);
   for (LO local_index = 0; local_index < nnodes; ++local_index) {
     const auto global_index =
         static_cast<GO>(node_tags[static_cast<std::size_t>(local_index)]);
     node_number_map[global_index] = local_index;
-    host_vert_globals[local_index] = global_index;
+    h_vert_globals_w[local_index] = global_index;
   }
-  Read<GO> vert_globals(host_vert_globals.write());
 
   std::array<std::vector<int>, 4> ent_class_ids;
   std::array<std::vector<LO>, 4> ent_nodes;
@@ -631,6 +667,23 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
     Omega_h_fail("There were no Elements of dimension higher than zero!\n");
   }
 
+  // function to decrement the values of container given in parameter
+  // by the minimum value of the container across all ranks
+  auto shift_container_values = [&](auto& container) {
+    auto local_min_it = std::min_element(container.begin(), container.end());
+    OMEGA_H_CHECK(local_min_it != container.end());
+    auto global_min = comm->allreduce(*local_min_it, OMEGA_H_MIN);
+    if (global_min != 0) {
+      for (auto& id : container) {
+        id -= global_min;
+      }
+    }
+  };
+  // shift elements global identifiers so that they start at 0
+  shift_container_values(ent_globals[max_dim]);
+  // shift vertices global identifiers so that they start at 0
+  shift_container_values(h_vert_globals_w);
+
   HostWrite<Real> host_coords(nnodes * max_dim);
   for (LO local_index = 0; local_index < nnodes; ++local_index) {
     for (LO j = 0; j < max_dim; ++j) {
@@ -659,8 +712,9 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
       }
     }
     LOs eqv2v(host_ev2v.write());
+    Write<GO> elem_globals(host_elem_globals.write());
+    Write<GO> vert_globals_w(h_vert_globals_w.write());
     if (ent_dim == max_dim) {
-      Read<GO> elem_globals(host_elem_globals.write());
       // build_from_elems2verts(
       // &mesh, mesh.library()->self(), OMEGA_H_SIMPLEX, dim, eqv2v,
       // vert_globals);
@@ -668,13 +722,13 @@ Mesh read_parallel(filesystem::path filename, CommPtr comm) {
       mesh.set_parting(OMEGA_H_ELEM_BASED);
       mesh.set_family(family);
       mesh.set_dim(ent_dim);
-      build_verts_from_globals(&mesh, vert_globals);
+      build_verts_from_globals(&mesh, vert_globals_w);
       // build_ents_from_elems2verts(&mesh, eqv2v, vert_globals, elem_globals);
       for (Int mdim = 1; mdim < ent_dim; ++mdim) {
         auto mv2v = find_unique(eqv2v, mesh.family(), ent_dim, mdim);
-        add_ents2verts(&mesh, mdim, mv2v, vert_globals, GOs());
+        add_ents2verts(&mesh, mdim, mv2v, vert_globals_w, GOs());
       }
-      add_ents2verts(&mesh, ent_dim, eqv2v, vert_globals, elem_globals);
+      add_ents2verts(&mesh, ent_dim, eqv2v, vert_globals_w, elem_globals);
       // if (!comm->reduce_and(is_sorted(vert_globals))) {
       //  reorder_by_globals(&mesh);
       //}
@@ -759,34 +813,38 @@ void write_parallel(filesystem::path const& filename, Mesh& mesh) {
   const auto dim = mesh.dim();
   const auto nnodes = mesh.nverts();
   const auto globals_v = mesh.globals(VERT);
+  const auto h_globals_v = HostRead<GO>(globals_v);
   const auto coords = mesh.coords();
+  const auto h_coords = HostRead<Real>(coords);
   const auto gmsh_dims = 3;
 
   std::vector<std::size_t> node_tags(static_cast<size_t>(nnodes));
   std::vector<double> node_coords(gmsh_dims * static_cast<size_t>(nnodes), 0);
   for (LO local_index = 0; local_index < nnodes; ++local_index) {
     node_tags[static_cast<std::size_t>(local_index)] =
-        static_cast<size_t>(globals_v[local_index]) + 1;
+        static_cast<size_t>(h_globals_v[local_index]) + 1;
     // cleaner to use gather_vector on coords
     for (LO j = 0; j < dim; ++j) {
       node_coords[static_cast<std::size_t>(local_index * gmsh_dims + j)] =
-          coords[local_index * dim + j];
+          h_coords[local_index * dim + j];
     }
   }
 
   auto ents2verts = mesh.ask_elem_verts();
+  auto h_ents2verts = HostRead<LO>(ents2verts);
   const LO ndim_ents = mesh.nelems();
   std::vector<std::size_t> element_tags(static_cast<size_t>(ndim_ents));
   std::vector<std::size_t> ent_nodes(
       static_cast<size_t>((dim + 1) * ndim_ents));
   const auto globals_e = mesh.globals(dim);
+  const auto h_globals_e = HostRead<GO>(globals_e);
   for (LO local_index = 0; local_index < ndim_ents; ++local_index) {
     element_tags[static_cast<std::size_t>(local_index)] =
-        static_cast<size_t>(globals_e[local_index]) + 1;
+        static_cast<size_t>(h_globals_e[local_index]) + 1;
     for (Int j = 0; j < dim + 1; ++j) {
       ent_nodes[static_cast<std::size_t>(local_index * (dim + 1) + j)] =
           static_cast<size_t>(
-              globals_v[ents2verts[local_index * (dim + 1) + j]]) +
+              h_globals_v[h_ents2verts[local_index * (dim + 1) + j]]) +
           1;
     }
   }

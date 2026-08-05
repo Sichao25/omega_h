@@ -22,6 +22,16 @@ void map_into_range(
 template <typename T>
 Read<T> map_onto(Read<T> a_data, LOs a2b, LO nb, T init_val, Int width);
 
+/** 
+ * \brief return the array of b_data in the order specified by a2b
+ * \remark a2b does not need to use all entries of b_data; it
+ *         can replicate values from b_data by using an index
+ *         multiple times.
+ * \param a2b (in) specifies output order of data from b_data
+ * \param b_data (in) data to reorder, size = size(a2b)*width
+ * \param width (in) number of entries in b_data per item
+ * \return reordered array of b_data
+ */
 template <typename T>
 Write<T> unmap(LOs a2b, Read<T> b_data, Int width);
 
@@ -45,6 +55,17 @@ LOs invert_permutation(LOs a2b);
 
 Read<I8> invert_marks(Read<I8> marks);
 
+/**
+ * \brief collect the indices of all marked entries into a compact array
+ * \param marks (in) array of marks where marks[i] != 0 indicates entry i is marked
+ * \return array of indices where marks[i] != 0, in ascending order
+ *
+ * \details Converts a sparse marking array into a dense array of marked indices.
+ * The returned array has size equal to the number of marked entries (sum of marks).
+ * For example, if marks = [0, 1, 1, 0, 1], the result is [1, 2, 4].
+ * This is commonly used after filtering operations to map from kept entities
+ * to their original indices.
+ */
 LOs collect_marked(Read<I8> marks);
 
 Read<I8> mark_image(LOs a2b, LO nb);
@@ -53,15 +74,53 @@ void inject_map(LOs a2b, Write<LO> b2a);
 
 LOs invert_injective_map(LOs a2b, LO nb);
 
+/**
+ * \brief given the source node index in A for a list of edges
+ *        between nodes in set A and B, sorted by their source
+ *        node in A, and the number of nodes in A, construct the
+ *        map from source nodes to edges (the 'offset' array, 'a2ab').
+ * \details the term 'funnel' is in the context of 'incoming' edges
+ *          being collected/grouped into the source nodes.  This interface
+ *          counts the degree/offset for the source nodes in the 'outgoing'
+ *          graph.  The implementation does not use atomics.
+ * \param ab2a (in) list of source node indices for edges between nodes in A and
+ *                  B, sorted by source node index
+ * \param na (in) number of nodes in set A
+ * \return map from source nodes to edges (the 'offset' array, 'a2ab')
+ *         with size = na + 1
+ */
 LOs invert_funnel(LOs ab2a, LO na);
 
+/**
+ * \brief see invert_map_by_atomics
+ */
 Graph invert_map_by_sorting(LOs a2b, LO nb);
 
+/**
+ * \brief given a bipartite graph from set A to B with nodes
+ *        in A having degree 1 and nodes in B having degree > 1,
+ *        and the array of indices mapping A to B (a2b), construct
+ *        the graph from B to A.
+ * \details see Appendix A of Dan Ibanez's 2016 Ph.D. Thesis,
+ *  "CONFORMAL MESH ADAPTATION ON HETEROGENEOUS SUPERCOMPUTERS"
+ * \param a2b (in) map of indices in A to B
+ * \param nb (in) size of set B
+ * \param b2ba_name (in) name of offset array in returned Graph
+ * \param ba2a_name (in) name of values array in returned Graph
+ * \return Graph of B to A
+ */
 Graph invert_map_by_atomics(LOs const a2b, LO const nb,
     std::string const& b2ba_name = "", std::string const& ba2a_name = "");
 
 LOs get_degrees(LOs offsets, std::string const& name = "");
 
+/**
+ * \brief the opposite of invert_funnel
+ * \param a2b (in) map from source nodes to edges (the 'offset' array, 'a2ab')
+ *        with size = na + 1
+ * \return list of source node indices for edges between nodes in A and
+ *         B, sorted by source node index
+ */
 LOs invert_fan(LOs a2b);
 
 Bytes mark_fan_preimage(LOs a2b);
@@ -72,6 +131,17 @@ template <typename T>
 Read<T> fan_max(LOs a2b, Read<T> b_data);
 template <typename T>
 Read<T> fan_min(LOs a2b, Read<T> b_data);
+
+/**
+ * \brief apply reduction operation op to each sub-array of data from b_data
+ *        defined by the offset array a2b
+ * \param a2b (in) map from source nodes to edges (the 'offset' array, 'a2ab')
+ *                 with size = na + 1
+ * \param b_data (in) edge data, size = number of edges * width
+ * \param width (in) number of data points per edge 
+ * \param op (in) the reduction operation, i.e., min, max, sum
+ * \return an array with width data points per source node
+ */
 template <typename T>
 Read<T> fan_reduce(LOs a2b, Read<T> b_data, Int width, Omega_h_Op op);
 

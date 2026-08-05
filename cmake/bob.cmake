@@ -10,7 +10,7 @@ function(bob_always_full_rpath)
   list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
        "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
   if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" PARENT_SCOPE)
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${BOB_LIB_DESTINATION}" PARENT_SCOPE)
   endif()
   # add the automatically determined parts of the RPATH
   # which point to directories outside the build tree to the install RPATH
@@ -69,18 +69,25 @@ macro(bob_begin_package)
     endif()
     bob_cmake_arg(CMAKE_BUILD_TYPE STRING "")
   endif()
-  bob_always_full_rpath()
   bob_cmake_arg(BUILD_TESTING BOOL OFF)
   bob_cmake_arg(BUILD_SHARED_LIBS BOOL ON)
   bob_cmake_arg(CMAKE_INSTALL_PREFIX PATH "")
   option(${PROJECT_NAME}_NORMAL_CXX_FLAGS "Allow CMAKE_CXX_FLAGS to follow \"normal\" CMake behavior" ${USE_XSDK_DEFAULTS})
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(BOB_LIB_DESTINATION "bin")
-	set(BOB_BIN_DESTINATION "bin")
+  option(${PROJECT_NAME}_ENABLE_GNUINSTALLDIRS "Use the GNUInstallDirs install dir paths" TRUE)
+  include(GNUInstallDirs)
+  if(${PROJECT_NAME}_ENABLE_GNUINSTALLDIRS)
+    set(BOB_LIB_DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    set(BOB_BIN_DESTINATION ${CMAKE_INSTALL_BINDIR})
   else()
-    set(BOB_LIB_DESTINATION "lib")
-	set(BOB_BIN_DESTINATION "bin")
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+      set(BOB_LIB_DESTINATION "bin")
+      set(BOB_BIN_DESTINATION "bin")
+    else()
+      set(BOB_LIB_DESTINATION "lib")
+      set(BOB_BIN_DESTINATION "bin")
+    endif()
   endif()
+  bob_always_full_rpath()
 endmacro(bob_begin_package)
 
 function(bob_get_commit)
@@ -195,7 +202,7 @@ function(bob_begin_cxx_flags)
 	endif()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
       if (${PROJECT_NAME}_CXX_WARNINGS)
-        set(FLAGS "${FLAGS} -Werror -Weverything")
+        set(FLAGS "${FLAGS} -Weverything")
         set(FLAGS "${FLAGS} -Wno-padded")
         set(FLAGS "${FLAGS} -Wno-float-equal")
         set(FLAGS "${FLAGS} -Wno-weak-template-vtables")
@@ -225,7 +232,7 @@ function(bob_begin_cxx_flags)
       endif()
     elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
       if (${PROJECT_NAME}_CXX_WARNINGS)
-        set(FLAGS "${FLAGS} -Werror -Wall -Wextra")
+        set(FLAGS "${FLAGS} -Wall -Wextra")
         set(FLAGS "${FLAGS} -Wdouble-promotion -Wshadow -Wformat=2")
         if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "6.0")
           set(FLAGS "${FLAGS} -Wduplicated-cond -Wnull-dereference")
@@ -254,7 +261,6 @@ function(bob_cxx11_flags)
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     message(STATUS "bob.cmake: no C++11 flag needed for MSVC")
   else()
-    set(FLAGS "${FLAGS} --std=c++11")
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
      if (${PROJECT_NAME}_CXX_WARNINGS)
         set(FLAGS "${FLAGS} -Wno-c++98-compat-pedantic -Wno-c++98-compat")
@@ -368,7 +374,7 @@ macro(bob_add_dependency)
           ARCHIVE DESTINATION "${BOB_LIB_DESTINATION}"
           RUNTIME DESTINATION "${BOB_LIB_DESTINATION}")
       install(EXPORT ${tgt}-target
-              DESTINATION lib/cmake/${PROJECT_NAME})
+          DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
       set(${PROJECT_NAME}_EXPORTED_TARGETS
           ${${PROJECT_NAME}_EXPORTED_TARGETS}
           ${tgt})
@@ -418,7 +424,7 @@ function(bob_export_target tgt_name)
     else()
       install(TARGETS ${tgt_name} EXPORT ${tgt_name}-target DESTINATION "${BOB_LIB_DESTINATION}")
       install(EXPORT ${tgt_name}-target NAMESPACE ${PROJECT_NAME}::
-              DESTINATION lib/cmake/${PROJECT_NAME})
+              DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
       set(${PROJECT_NAME}_EXPORTED_TARGETS
           ${${PROJECT_NAME}_EXPORTED_TARGETS} ${tgt_name} PARENT_SCOPE)
     endif()
@@ -476,7 +482,13 @@ function(bob_config_header HEADER_PATH)
 
 #endif
 ")
-  file(WRITE "${HEADER_PATH}" "${HEADER_CONTENT}")
+
+  set(TEMP_PATH "${HEADER_PATH}.tmp")
+  file(WRITE "${TEMP_PATH}" "${HEADER_CONTENT}")
+  # Only update if content changed; changing the header will trigger a rebuild
+  execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${TEMP_PATH}" "${HEADER_PATH}")
+  file(REMOVE "${TEMP_PATH}")
 endfunction()
 
 function(bob_get_link_libs tgt var)
@@ -530,7 +542,7 @@ function(bob_install_provenance)
        "${${PROJECT_NAME}_CMAKE_ARGS}")
   install(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_cmake_args.txt
-      DESTINATION lib/cmake/${PROJECT_NAME})
+      DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
   get_property(languages GLOBAL PROPERTY ENABLED_LANGUAGES)
   string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type_upper)
   foreach(lang IN LISTS languages)
@@ -538,7 +550,7 @@ function(bob_install_provenance)
          "${CMAKE_${lang}_COMPILER} ${CMAKE_${lang}_FLAGS} ${CMAKE_${lang}_FLAGS_${build_type_upper}}")
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_${lang}_compile_line.txt
-        DESTINATION lib/cmake/${PROJECT_NAME})
+        DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
   endforeach()
   foreach(tgt IN LISTS ${PROJECT_NAME}_EXPORTED_TARGETS)
     get_target_property(tgt_type "${tgt}" TYPE)
@@ -548,15 +560,15 @@ function(bob_install_provenance)
            "${link_libs}")
       install(FILES
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_${tgt}_libs.txt
-          DESTINATION lib/cmake/${PROJECT_NAME})
+          DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
     endif()
   endforeach()
 endfunction(bob_install_provenance)
 
 function(bob_end_package)
   include(CMakePackageConfigHelpers)
-  set(INCLUDE_INSTALL_DIR include)
-  set(LIB_INSTALL_DIR lib)
+  set(INCLUDE_INSTALL_DIR include) #HERE
+  set(LIB_INSTALL_DIR ${BOB_LIB_DESTINATION}) #HERE
   set(LATEST_FIND_DEPENDENCY
 "#The definition of this macro is really inconvenient prior to CMake
 #commit ab358d6a859d8b7e257ed1e06ca000e097a32ef6
@@ -632,7 +644,7 @@ set(${KEY_${TYPE}} \"${val}\")")
 ")
   install(FILES
     "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    DESTINATION lib/cmake/${PROJECT_NAME})
+    DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
   if(PROJECT_VERSION)
     file(WRITE
         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
@@ -643,7 +655,7 @@ set(${KEY_${TYPE}} \"${val}\")")
         COMPATIBILITY SameMajorVersion)
     install(FILES
       "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-      DESTINATION lib/cmake/${PROJECT_NAME})
+      DESTINATION ${BOB_LIB_DESTINATION}/cmake/${PROJECT_NAME})
   endif()
   bob_install_provenance()
 endfunction(bob_end_package)

@@ -8,18 +8,39 @@
 
 namespace Omega_h {
 
+/**
+ * \brief directed graph (as defined by graph theory) in compressed row format
+ *
+ * \details the typical access pattern: using a serial CPU backend
+ * for (LO a = 0; a < na; ++a) {
+ *   for (auto ab = a2ab[a]; ab < a2ab[a + 1]; ++ab) {
+ *     auto b = ab2b[ab];
+ *     // do something with the (a,b) pair
+ *   }
+ * }
+ */
 struct Graph {
   OMEGA_H_INLINE Graph() {}
   explicit Graph(LOs ab2b_) : ab2b(ab2b_) {}
   Graph(LOs a2ab_, LOs ab2b_) : a2ab(a2ab_), ab2b(ab2b_) {}
-  LOs a2ab;
-  LOs ab2b;
+  LOs a2ab; //offset array
+  LOs ab2b; //values array
   LO nnodes() const;
   LO nedges() const;
 };
 
+/** \brief combine the edges of two graphs that have the same set of nodes */
 Graph add_edges(Graph g1, Graph g2);
+/** \brief traverse two graphs a2b and b2c to form and return a graph from a2c */
 Graph unmap_graph(LOs a2b, Graph b2c);
+/**
+ * \brief apply reduction operation op to the edge data associated with each source node
+ * \param a2b (in) graph from source nodes to edges
+ * \param b_data (in) edge data, size = number of edges * width
+ * \param width (in) number of data points per edge 
+ * \param op (in) the reduction operation, i.e., min, max, sum
+ * \return an array with width data points per source node
+ */
 template <typename T>
 Read<T> graph_reduce(Graph a2b, Read<T> b_data, Int width, Omega_h_Op op);
 Reals graph_weighted_average_arc_data(

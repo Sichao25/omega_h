@@ -1,7 +1,11 @@
 #ifndef OMEGA_H_TAG_HPP
 #define OMEGA_H_TAG_HPP
 
+#include <unordered_map>
 #include <Omega_h_array.hpp>
+#ifdef OMEGA_H_USE_MPI
+#include <mpi.h>
+#endif
 
 namespace Omega_h {
 
@@ -9,23 +13,50 @@ inline void check_tag_name(std::string const& name) {
   OMEGA_H_CHECK(!name.empty());
 }
 
+enum class ArrayType {
+  VectorND, // vector with N components
+  SymmetricSquareMatrix, // symmetric matrix with dim*(dim+1)/2 components
+};
+
+ const std::unordered_map<ArrayType, std::string> ArrayTypeNames = {
+    {ArrayType::VectorND, "VectorND"},
+    {ArrayType::SymmetricSquareMatrix, "SymmetricSquareMatrix"}
+};
+
+const std::unordered_map<std::string, ArrayType> NamesToArrayType = {
+    {"VectorND", ArrayType::VectorND},
+    {"SymmetricSquareMatrix", ArrayType::SymmetricSquareMatrix}
+};
+
 class TagBase {
  public:
   TagBase(std::string const& name_in, Int ncomps_in);
+  TagBase(std::string const& name_in, Int ncomps_in, LOs class_ids_in);
+  TagBase(std::string const& name_in, Int ncomps_in, ArrayType array_type_in);
+  TagBase(std::string const& name_in, Int ncomps_in, LOs class_ids_in,
+      ArrayType array_type_in);
   virtual ~TagBase();
   std::string const& name() const;
   Int ncomps() const;
   virtual Omega_h_Type type() const = 0;
+  LOs class_ids() const;
+  ArrayType array_type() const;
 
  private:
   std::string name_;
   Int ncomps_;
+  LOs class_ids_;
+  ArrayType array_type_ = ArrayType::VectorND;
 };
 
 template <typename T>
 class Tag : public TagBase {
  public:
   Tag(std::string const& name_in, Int ncomps_in);
+  Tag(std::string const& name_in, Int ncomps_in, LOs class_ids_in);
+  Tag(std::string const& name_in, Int ncomps_in, ArrayType array_type_in);
+  Tag(std::string const& name_in, Int ncomps_in, LOs class_ids_in,
+      ArrayType array_type_in);
   Read<T> array() const;
   void set_array(Read<T> array_in);
   virtual Omega_h_Type type() const override;

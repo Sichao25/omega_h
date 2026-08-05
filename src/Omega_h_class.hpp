@@ -7,7 +7,7 @@ namespace Omega_h {
 
 class Mesh;
 
-void classify_by_angles(Mesh* mesh, Real sharp_angle);
+void classify_by_angles(Mesh* mesh, Real sharp_angle /*in radians*/);
 
 void classify_sides_by_exposure(Mesh* mesh, Read<I8> side_is_exposed);
 void classify_hinges_by_sharpness(
@@ -36,6 +36,11 @@ void finalize_classification(Mesh* mesh);
  */
 void classify_equal_order(
     Mesh* mesh, Int ent_dim, LOs eqv2v, Read<ClassId> eq_class_ids);
+
+/*TODO this function is included as work in progress and is not tested */
+void classify_equal_order(
+    Mesh* mesh, Topo_type ent_type, LOs eqv2v, Read<ClassId> eq_class_ids);
+/* */
 
 }  // end namespace Omega_h
 
