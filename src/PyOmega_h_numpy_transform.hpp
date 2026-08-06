@@ -17,12 +17,15 @@ Omega_h::Read<T> numpy_to_omega_h_read(py::array_t<T> arr)
   if (buf.ndim != 1) {
     throw std::runtime_error("Number of dimensions must be 1");
   }
+  // Copy element-by-element through HostWrite instead of wrapping
+  // the numpy pointer directly in a Kokkos view. This ensures:
+  // 1. Proper memory ownership (Write owns its allocation even with kokkos CPU backend)
+  // 2. Correct handling of non-contiguous (sliced) numpy arrays via stride
   auto write_view_host = Omega_h::HostWrite<T>(buf.shape[0]);
   T* ptr = static_cast<T*>(buf.ptr);
-  // copying to hostwrite instead of wrapping numpy pointer
-  // to avoid issues with sliced numpy arrays
+  ssize_t stride = buf.strides[0] / sizeof(T);
   for (Omega_h::LO i = 0; i < buf.shape[0]; ++i) {
-    write_view_host[i] = ptr[i];
+    write_view_host[i] = ptr[i * stride];
   }
   auto write_view = Omega_h::Write<T>(write_view_host);
   Omega_h::Read<T> read_view(write_view);
@@ -51,12 +54,15 @@ Omega_h::Write<T> numpy_to_omega_h_write(py::array_t<T> arr)
   if (buf.ndim != 1) {
     throw std::runtime_error("Number of dimensions must be 1");
   }
+  // Copy element-by-element through HostWrite instead of wrapping
+  // the numpy pointer directly in a Kokkos view. This ensures:
+  // 1. Proper memory ownership (Write owns its allocation even with kokkos CPU backend)
+  // 2. Correct handling of non-contiguous (sliced) numpy arrays via stride
   auto write_view_host = Omega_h::HostWrite<T>(buf.shape[0]);
   T* ptr = static_cast<T*>(buf.ptr);
-  // copying to hostwrite instead of wrapping numpy pointer
-  // to avoid issues with sliced numpy arrays
+  ssize_t stride = buf.strides[0] / sizeof(T);
   for (Omega_h::LO i = 0; i < buf.shape[0]; ++i) {
-    write_view_host[i] = ptr[i];
+    write_view_host[i] = ptr[i * stride];
   }
   auto write_view = Omega_h::Write<T>(write_view_host);
   return write_view;
