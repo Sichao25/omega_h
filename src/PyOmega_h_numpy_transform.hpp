@@ -17,10 +17,12 @@ Omega_h::Read<T> numpy_to_omega_h_read(py::array_t<T> arr)
   if (buf.ndim != 1) {
     throw std::runtime_error("Number of dimensions must be 1");
   }
-  Kokkos::View<T*, Kokkos::DefaultExecutionSpace::memory_space,
-               Kokkos::MemoryTraits<Kokkos::Unmanaged>>
-    view(reinterpret_cast<T*>(buf.ptr), buf.shape[0]);
-  Omega_h::Write<T> write_view(view);
+  auto write_view_host = Omega_h::HostWrite<T>(buf.shape[0]);
+  T* ptr = static_cast<T*>(buf.ptr);
+  for (Omega_h::LO i = 0; i < buf.shape[0]; ++i) {
+    write_view_host[i] = ptr[i];
+  }
+  auto write_view = Omega_h::Write<T>(write_view_host);
   Omega_h::Read<T> read_view(write_view);
   return read_view;
 }
@@ -57,16 +59,20 @@ Omega_h::Write<T> numpy_to_omega_h_write(py::array_t<T> arr)
   return write_view;
 }
 
-// Helper to convert Omega_h::Write to numpy array (creates a reference)
+// Helper to convert Omega_h::Write to numpy array (creates a copy)
 template <typename T>
 py::array_t<T> omega_h_write_to_numpy(Omega_h::Write<T> write_view)
 {
-  return py::array_t<T>({static_cast<py::ssize_t>(write_view.size())}, // shape
-                        {sizeof(T)},         // strides
-                        write_view.data(),   // data pointer
-                        py::cast(write_view) // base object to manage lifetime
-  );
+  auto write_view_host = Omega_h::HostWrite<T>(write_view);
+  py::array_t<T> result(write_view_host.size());
+  py::buffer_info buf = result.request();
+  T* ptr = static_cast<T*>(buf.ptr);
+  for (Omega_h::LO i = 0; i < write_view_host.size(); ++i) {
+    ptr[i] = write_view_host[i];
+  }
+  return result;
 }
 } // namespace Omega_h
 
 #endif
+
