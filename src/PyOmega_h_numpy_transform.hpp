@@ -19,6 +19,8 @@ Omega_h::Read<T> numpy_to_omega_h_read(py::array_t<T> arr)
   }
   auto write_view_host = Omega_h::HostWrite<T>(buf.shape[0]);
   T* ptr = static_cast<T*>(buf.ptr);
+  // copying to hostwrite instead of wrapping numpy pointer
+  // to avoid issues with sliced numpy arrays
   for (Omega_h::LO i = 0; i < buf.shape[0]; ++i) {
     write_view_host[i] = ptr[i];
   }
@@ -49,9 +51,10 @@ Omega_h::Write<T> numpy_to_omega_h_write(py::array_t<T> arr)
   if (buf.ndim != 1) {
     throw std::runtime_error("Number of dimensions must be 1");
   }
-  // Get host mirror and copy data
   auto write_view_host = Omega_h::HostWrite<T>(buf.shape[0]);
   T* ptr = static_cast<T*>(buf.ptr);
+  // copying to hostwrite instead of wrapping numpy pointer
+  // to avoid issues with sliced numpy arrays
   for (Omega_h::LO i = 0; i < buf.shape[0]; ++i) {
     write_view_host[i] = ptr[i];
   }
