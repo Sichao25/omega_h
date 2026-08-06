@@ -7,8 +7,13 @@ using namespace Omega_h;
 
 #if defined(OMEGA_H_USE_KOKKOS)
 #include <Kokkos_NestedSort.hpp> //sort_team
+#endif
+
+#include <algorithm> //std::sort
 
 namespace {
+
+#if defined(OMEGA_H_USE_KOKKOS)
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
   using ExecSpace = Kokkos::DefaultExecutionSpace;
   using TeamPol = Kokkos::TeamPolicy<ExecSpace>;
@@ -25,6 +30,22 @@ namespace {
   Kokkos::parallel_for(TeamPol(g.nnodes(), Kokkos::AUTO()), segment_sort);
   return Graph(offsets,Write<LO>(elms));
 }
+#else
+[[nodiscard]] Graph adj_segment_sort(Graph& g) {
+  auto offsets = g.a2ab;
+  auto elms_r = Read(g.ab2b); //read only
+  Write<LO> elms(elms_r.size(), "elms");
+  auto copyFn = OMEGA_H_LAMBDA(LO i) {
+    elms[i] = elms_r[i];
+  };
+  parallel_for(elms.size(), copyFn);
+  auto sortFn = OMEGA_H_LAMBDA(LO i) {
+    std::sort(elms.begin() + offsets[i], elms.begin() + offsets[i+1]);
+  };
+  parallel_for(g.nnodes(), sortFn);
+  return Graph(offsets, elms);
+}
+#endif
 
 [[nodiscard]] Graph remove_duplicate_edges(Graph g) {
   auto offsets = g.a2ab;
@@ -131,4 +152,4 @@ namespace {
   }
   return Graph();
 }
-#endif
+

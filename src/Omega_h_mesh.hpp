@@ -169,7 +169,6 @@ class Mesh {
       std::string const& name, Read<T> array);
   friend class ScopedChangeRCFieldsToMesh;
 
-  #if defined(OMEGA_H_USE_KOKKOS)
   /**
    * \brief form a patch of at least minPatchSize elements surrounding each mesh
    *        vertex
@@ -183,7 +182,6 @@ class Mesh {
    *         an empty graph upon failure
    */
   [[nodiscard]] Graph get_vtx_patches(Int minPatchSize, Int tgtDim = -1);
-  #endif
 
 
  private:
@@ -471,3 +469,4 @@ OMEGA_H_EXPL_INST_DECL(Real)
 }  // namespace Omega_h
 
 #endif
+
