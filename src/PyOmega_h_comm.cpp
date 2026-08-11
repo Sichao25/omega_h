@@ -14,24 +14,27 @@ void pybind11_comm(py::module& m) {
   py::class_<Omega_h::Comm, std::shared_ptr<Omega_h::Comm>>(m, "Comm")
   // Constructors
 #ifdef OMEGA_H_USE_MPI
-    .def(py::init([](Omega_h::Library* library, CommHandle impl_handle) {
+    .def(py::init([](std::shared_ptr<Omega_h::Library> library,
+                     CommHandle impl_handle) {
            MPI_Comm impl;
            std::memcpy(&impl, &impl_handle, sizeof(MPI_Comm));
-           return new Omega_h::Comm(library, impl);
+           return new Omega_h::Comm(library.get(), impl);
          }),
-         py::arg("library"), py::arg("impl_handle"))
+         py::arg("library"), py::arg("impl_handle"),
+         py::keep_alive<1, 0>())
 
-    .def(py::init([](Omega_h::Library* library, CommHandle impl_handle,
+    .def(py::init([](std::shared_ptr<Omega_h::Library> library,
+                     CommHandle impl_handle,
                      py::array_t<const Omega_h::I32> srcs,
                      py::array_t<const Omega_h::I32> dsts) {
            MPI_Comm impl;
            std::memcpy(&impl, &impl_handle, sizeof(MPI_Comm));
            auto srcs_view = numpy_to_omega_h_read<Omega_h::I32>(srcs);
            auto dsts_view = numpy_to_omega_h_read<Omega_h::I32>(dsts);
-           return new Omega_h::Comm(library, impl, srcs_view, dsts_view);
+           return new Omega_h::Comm(library.get(), impl, srcs_view, dsts_view);
          }),
          py::arg("library"), py::arg("impl_handle"), py::arg("srcs"),
-         py::arg("dsts"))
+         py::arg("dsts"), py::keep_alive<1, 0>())
 
     .def(
       "get_impl_handle",
@@ -43,8 +46,12 @@ void pybind11_comm(py::module& m) {
       },
       "Get the underlying MPI communicator as an opaque integer handle")
 #else
-    .def(py::init<Omega_h::Library*, bool, bool>(), py::arg("library"),
-         py::arg("is_graph"), py::arg("sends_to_self"))
+    .def(py::init([](std::shared_ptr<Omega_h::Library> library, bool is_graph,
+                     bool sends_to_self) {
+           return new Omega_h::Comm(library.get(), is_graph, sends_to_self);
+         }),
+         py::arg("library"), py::arg("is_graph"), py::arg("sends_to_self"),
+         py::keep_alive<1, 0>())
 #endif
     // Methods
     .def("library", &Omega_h::Comm::library, py::return_value_policy::reference,

@@ -18,7 +18,6 @@ namespace py = pybind11;
 
 namespace Omega_h {
 class Library;
-extern Library* pybind11_global_library;
 void pybind11_defines(py::module& m);
 void pybind11_array(py::module& m);
 void pybind11_comm(py::module& m);
