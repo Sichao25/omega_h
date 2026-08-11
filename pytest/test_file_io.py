@@ -14,30 +14,6 @@ import shutil
 import tempfile
 
 
-# Global library instance - intentionally NOT cleaned up to avoid MPI finalization issues
-# See PyOmega_h_library.cpp for design rationale
-_global_lib = None
-
-
-@pytest.fixture(scope="session")
-def lib():
-    """Session-scoped library instance shared across all tests.
-    
-    Note: Cleanup is handled by conftest.py using os._exit() to avoid
-    MPI/Kokkos finalization order issues.
-    """
-    global _global_lib
-    if _global_lib is None:
-        _global_lib = omega_h.OmegaHLibrary()
-    return _global_lib
-
-
-@pytest.fixture(scope="session")
-def world(lib):
-    """Session-scoped communicator."""
-    return lib.world()
-
-
 @pytest.fixture
 def test_mesh(world):
     """Create a simple 3D test mesh."""

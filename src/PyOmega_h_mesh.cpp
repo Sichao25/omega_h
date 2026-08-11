@@ -41,7 +41,8 @@ void pybind11_mesh(py::module& m) {
     .def("set_comm", &Omega_h::Mesh::set_comm, py::arg("comm"),
          "Set the communicator")
 
-    .def("comm", &Omega_h::Mesh::comm, "Get the communicator")
+    .def("comm", &Omega_h::Mesh::comm, py::keep_alive<0, 1>(),
+         "Get the communicator (keeps mesh alive)")
 
     .def("set_dim", &Omega_h::Mesh::set_dim, py::arg("dim"),
          "Set mesh dimension")
