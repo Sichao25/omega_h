@@ -33,17 +33,17 @@ namespace {
 #else
 [[nodiscard]] Graph adj_segment_sort(Graph& g) {
   auto offsets = g.a2ab;
-  auto elms_r = Read(g.ab2b); //read only
-  Write<LO> elms(elms_r.size(), "elms");
-  auto copyFn = OMEGA_H_LAMBDA(LO i) {
+  auto elms_r = HostRead(g.ab2b); //read only
+  HostWrite<LO> elms(elms_r.size(), "elms");
+  for (LO i = 0; i < elms.size(); ++i) {
     elms[i] = elms_r[i];
-  };
-  parallel_for(elms.size(), copyFn);
-  auto sortFn = OMEGA_H_LAMBDA(LO i) {
+  }
+
+  for(LO i = 0; i < g.nnodes(); ++i) {
     std::sort(elms.begin() + offsets[i], elms.begin() + offsets[i+1]);
-  };
-  parallel_for(g.nnodes(), sortFn);
-  return Graph(offsets, elms);
+  }
+
+  return Graph(offsets, Read<LO>(elms));
 }
 #endif
 
