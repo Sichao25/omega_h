@@ -82,7 +82,7 @@ AdaptOpts::AdaptOpts(Int dim) {
 #ifdef OMEGA_H_USE_EGADS
   egads_model = nullptr;
 #endif
-#ifdef OMEGA_H_USE_EGADSlite
+#ifdef OMEGA_H_USE_EGADSLITE
   egads_lite_model = nullptr;
 #endif
   should_refine = true;
@@ -299,7 +299,7 @@ static void post_adapt(
 #ifdef OMEGA_H_USE_EGADS
     if (opts.egads_model) std::cout << "snapping while ";
 #endif
-#ifdef OMEGA_H_USE_EGADSlite
+#ifdef OMEGA_H_USE_EGADSLITE
     if (opts.egads_lite_model) std::cout << "snapping while ";
 #endif
     std::cout << "addressing element qualities took " << (t3 - t2);
