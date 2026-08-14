@@ -133,6 +133,7 @@ struct SharedAlloc {
   }
   OMEGA_H_INLINE std::size_t size() const noexcept {
 #ifndef __CUDA_ARCH__
+    if (alloc == nullptr) return 0;
     if (!(reinterpret_cast<std::uintptr_t>(alloc) & IN_PARALLEL)) {
 #if defined(__GNUC__) && (__GNUC__ >= 7) && (!defined(__clang__))
 #pragma GCC diagnostic push
