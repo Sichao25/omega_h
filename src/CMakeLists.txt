@@ -885,7 +885,15 @@ if (Omega_h_USE_pybind11)
   if (Omega_h_USE_DOLFIN)
     list(APPEND PYBIND11_SOURCES PyOmega_h_dolfin.cpp)
   endif()
+  set(PYBIND11_MODULE_OPTIONS)
+  if (Kokkos_ENABLE_CUDA)
+    # GNU LTO merges CUDA fatbinary objects and emits duplicate fatbinData
+    # symbols while linking the Python module. NO_EXTRAS disables pybind11's
+    # automatic LTO for this target.
+    set(PYBIND11_MODULE_OPTIONS NO_EXTRAS)
+  endif()
   pybind11_add_module(PyOmega_h
+      ${PYBIND11_MODULE_OPTIONS}
       ${PYBIND11_SOURCES})
   target_link_libraries(PyOmega_h PUBLIC omega_h)
   # this is useful for direct CMake installation into python.
