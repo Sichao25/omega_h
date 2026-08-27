@@ -803,6 +803,7 @@ set(Omega_h_HEADERS
   Omega_h_dist.hpp
   Omega_h_eigen.hpp
   Omega_h_egads.hpp
+  Omega_h_egads_lite.hpp
   Omega_h_element.hpp
   Omega_h_expr.hpp
   Omega_h_fail.hpp

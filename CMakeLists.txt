@@ -159,7 +159,7 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_ZLIB
     Omega_h_USE_libMeshb
     Omega_h_USE_EGADS
-    Omega_h_USE_EGADSlite
+    Omega_h_USE_egadslite
     Omega_h_USE_SEACASExodus
     Omega_h_USE_SimModSuite
     Omega_h_USE_SimDiscrete
