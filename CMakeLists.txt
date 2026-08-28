@@ -65,7 +65,6 @@ if (Omega_h_USE_Kokkos)
 endif()
 
 if (Omega_h_USE_egadslite)
-  enable_language(CUDA)
   bob_add_dependency(PUBLIC NAME egadslite TARGETS egadslite::egadslite)
   install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/bin/nvcc_wrapper DESTINATION bin)
 endif()
