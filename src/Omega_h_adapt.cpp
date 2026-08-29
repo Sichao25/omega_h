@@ -79,11 +79,8 @@ AdaptOpts::AdaptOpts(Int dim) {
   should_smooth_snap = true;
   snap_smooth_tolerance = 1e-2;
   allow_snap_failure = false;
-#ifdef OMEGA_H_USE_EGADS
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
   egads_model = nullptr;
-#endif
-#ifdef OMEGA_H_USE_EGADSLITE
-  egads_lite_model = nullptr;
 #endif
   should_refine = true;
   should_coarsen = true;
@@ -218,7 +215,7 @@ static bool satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
 }
 
 static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
-#ifdef OMEGA_H_USE_EGADS
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
   if (opts.egads_model) {
     ScopedTimer snap_timer("snap");
 
@@ -228,38 +225,14 @@ static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
 
     //mesh->change_all_rcFieldsToMesh();
 
+    #ifdef OMEGA_H_USE_EGADSLITE
+    auto warp = egads_lite_get_snap_warp(
+      mesh, opts.egads_model, opts.verbosity >= EACH_REBUILD);
+    #else
     auto warp = egads_get_snap_warp(
         mesh, opts.egads_model, opts.verbosity >= EACH_REBUILD);
-    if (opts.should_smooth_snap) {
-      if (opts.verbosity >= EACH_REBUILD) {
-        std::cout << "Solving Laplacian of warp field...\n";
-      }
-      auto t0 = now();
-      warp =
-          solve_laplacian(mesh, warp, mesh->dim(), opts.snap_smooth_tolerance);
-      auto t1 = now();
-      if (opts.verbosity >= EACH_REBUILD) {
-        std::cout << "Solving Laplacian of warp field took " << (t1 - t0)
-                  << " seconds\n";
-      }
-    }
-    mesh->add_tag(VERT, "warp", mesh->dim(), warp);
-    while (warp_to_limit(mesh, opts, opts.allow_snap_failure)) {
-      if (!satisfy_quality(mesh, opts)) {
-        mesh->remove_tag(VERT, "warp");
-        break;
-      }
-    }
-  } else
-#endif
-#ifdef OMEGA_H_USE_EGADSLITE
-  if (opts.egads_lite_model) {
-    ScopedTimer snap_timer("snap");
+    #endif
 
-    mesh->set_parting(OMEGA_H_GHOSTED);
-
-    auto warp = egads_lite_get_snap_warp(
-        mesh, opts.egads_lite_model, opts.verbosity >= EACH_REBUILD);
     if (opts.should_smooth_snap) {
       if (opts.verbosity >= EACH_REBUILD) {
         std::cout << "Solving Laplacian of warp field...\n";
@@ -296,11 +269,8 @@ static void post_adapt(
     std::cout << "addressing edge lengths took " << (t2 - t1) << " seconds\n";
   }
   if (opts.verbosity > SILENT && !mesh->comm()->rank()) {
-#ifdef OMEGA_H_USE_EGADS
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
     if (opts.egads_model) std::cout << "snapping while ";
-#endif
-#ifdef OMEGA_H_USE_EGADSLITE
-    if (opts.egads_lite_model) std::cout << "snapping while ";
 #endif
     std::cout << "addressing element qualities took " << (t3 - t2);
     std::cout << " seconds\n";

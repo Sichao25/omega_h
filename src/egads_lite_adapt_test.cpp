@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
     std::cout << "reading in " << model_path << '\n';
     auto eg = Omega_h::egads_lite_load(model_path);
     Omega_h::egads_lite_reclassify(&mesh, eg);
-    opts.egads_lite_model = eg;
+    opts.egads_model = eg;
     hackClassification(&mesh); //there are problems...
     Omega_h::vtk::write_parallel("postHack", &mesh, mesh.dim());
   }
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
   Omega_h::meshb::write(&mesh, path_out);
 #ifdef OMEGA_H_USE_EGADSLITE
   if (has_model) {
-    Omega_h::egads_lite_free(opts.egads_lite_model);
+    Omega_h::egads_lite_free(opts.egads_model);
   }
 #endif
 }
