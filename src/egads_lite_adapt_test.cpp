@@ -29,65 +29,9 @@ static void compute_target_metric(Omega_h::Mesh* mesh) {
       Omega_h::symm_ncomps(mesh->dim()), metrics);
 }
 
-void checkCudaError(int line) {
-#ifdef __NVCC__
-  cudaError_t code = cudaDeviceSynchronize();
-  const char * errorMessage = cudaGetErrorString(code);
-  if( code != cudaSuccess ) {
-    fprintf(stderr, "CUDA error on line %d Error code: %d (%s)\n", line, code, errorMessage);
-  }
-  assert(code == cudaSuccess);
-#endif
-}
-
-void hackClassification(Omega_h::Mesh* mesh) {
-  fprintf(stderr, "hacking classification\n");
-  OMEGA_H_CHECK(mesh->dim() == 3);
-  auto vtx_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::VERT, "class_dim");
-  auto vtx_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::VERT, "class_id");
-  auto vtx_class_ids_w = Omega_h::deep_copy(vtx_class_ids_r, "vtxClassIds_w");
-  auto setVtxClass = OMEGA_H_LAMBDA(int i) {
-    if(vtx_class_dims[i] == 1 && vtx_class_ids_w[i] == 1) {
-      printf("vtx %i reclassified\n",i);
-      vtx_class_ids_w[i] = 7;
-    }
-  };
-  Omega_h::parallel_for(mesh->nents(0), setVtxClass, "setVtxClass");
-  fprintf(stderr, "done hacking vtx classification\n");
-  mesh->set_tag(0, "class_id", Omega_h::read(vtx_class_ids_w));
-
-  auto edge_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::EDGE, "class_dim");
-  auto edge_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::EDGE, "class_id");
-  auto edge_class_ids_w = Omega_h::deep_copy(edge_class_ids_r, "edgeClassIds_w");
-  auto setEdgeClass = OMEGA_H_LAMBDA(int i) {
-    if(edge_class_dims[i] == 1 && edge_class_ids_w[i] == 1) {
-      printf("edge %i reclassified\n",i);
-      edge_class_ids_w[i] = 7;
-    }
-  };
-  Omega_h::parallel_for(mesh->nents(1), setEdgeClass, "setEdgeClass");
-  fprintf(stderr, "done hacking edge classification\n");
-  mesh->set_tag(1, "class_id", Omega_h::read(edge_class_ids_w));
-
-}
-
-void setCudaStackSz() {
-  size_t stackLimit;
-  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
-  checkCudaError(__LINE__);
-  printf("original stack limit %d\n", stackLimit);
-  stackLimit=8*1024;
-  cuCtxSetLimit(CU_LIMIT_STACK_SIZE,stackLimit);
-  checkCudaError(__LINE__);
-  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
-  checkCudaError(__LINE__);
-  printf("new stack limit %d\n", stackLimit);
-  printf("stack limit %d\n", stackLimit);
-}
-
 int main(int argc, char** argv) {
   auto lib = Omega_h::Library(&argc, &argv);
-  setCudaStackSz();
+  Omega_h::setCudaStackSz();
   Omega_h::CmdLine cmdline;
   cmdline.add_arg<std::string>("mesh_in.meshb");
   cmdline.add_arg<std::string>("mesh_out.meshb");
@@ -116,7 +60,7 @@ int main(int argc, char** argv) {
     auto eg = Omega_h::egads_lite_load(model_path);
     Omega_h::egads_lite_reclassify(&mesh, eg);
     opts.egads_model = eg;
-    hackClassification(&mesh); //there are problems...
+    Omega_h::hackClassification(&mesh); //there are problems...
     Omega_h::vtk::write_parallel("postHack", &mesh, mesh.dim());
   }
 #endif
