@@ -37,11 +37,3 @@ def lib():
 def world(lib):
     """Session-scoped communicator."""
     return lib.world()
-
-
-def _cleanup_exit():
-    """Avoid Kokkos::Cuda::finalize() and MPI_Finalize() ordering issues."""
-    os._exit(0)
-
-
-atexit.register(_cleanup_exit)

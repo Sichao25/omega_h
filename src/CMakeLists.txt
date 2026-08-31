@@ -868,6 +868,7 @@ install(FILES ${Omega_h_HEADERS} DESTINATION include)
 if (Omega_h_USE_pybind11)
   set(PYBIND11_SOURCES
       PyOmega_h.cpp
+      PyOmega_h_runtime.cpp
       PyOmega_h_defines.cpp
       PyOmega_h_array.cpp
       PyOmega_h_comm.cpp
