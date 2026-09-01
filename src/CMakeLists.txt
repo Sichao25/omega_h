@@ -254,7 +254,7 @@ if(Omega_h_USE_DOLFIN)
 endif()
 
 if(Kokkos_ENABLE_CUDA)
-  target_compile_options(omega_h PUBLIC "--expt-extended-lambda")
+  target_compile_options(omega_h PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:--expt-extended-lambda>")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
