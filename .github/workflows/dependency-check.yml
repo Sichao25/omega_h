@@ -1,9 +1,5 @@
 name: Dependency version check
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
   schedule:
     # Run weekly to catch new gmsh releases even without code changes
     - cron: '0 6 * * 1'
