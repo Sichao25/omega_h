@@ -1,0 +1,42 @@
+name: Dependency version check
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Run weekly to catch new gmsh releases even without code changes
+    - cron: '0 6 * * 1'
+env:
+  # Keep GMSH_VERSION in sync with .github/workflows/cmake.yml
+  GMSH_VERSION: "4.15.2"
+jobs:
+  dependency-check:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Check gmsh version
+      run: |
+        set -euo pipefail
+        CURRENT_VERSION="$GMSH_VERSION"
+
+        LATEST_VERSION="$(git ls-remote --tags https://gitlab.onelab.info/gmsh/gmsh.git 2>/dev/null |
+        grep -o 'refs/tags/gmsh_[0-9_]*$' |
+        sed 's#refs/tags/gmsh_##; s/_/./g' |
+        sort -V |
+        tail -1 || true)"
+
+        if [ -z "$LATEST_VERSION" ]; then
+          echo "::error::Could not determine the latest gmsh version"
+          exit 1
+        fi
+
+        echo "Pinned gmsh: $CURRENT_VERSION"
+        echo "Latest  gmsh: $LATEST_VERSION"
+
+        GREATER="$({ echo "$CURRENT_VERSION"; echo "$LATEST_VERSION"; } | sort -V | tail -1)"
+        if [ "$GREATER" != "$CURRENT_VERSION" ]; then
+          echo "::error::A newer gmsh version is available: $LATEST_VERSION (pinned: $CURRENT_VERSION). Update GMSH_VERSION in .github/workflows/dependency-check.yml and .github/workflows/cmake.yml"
+          exit 1
+        fi
+
+        echo "gmsh is up to date."
