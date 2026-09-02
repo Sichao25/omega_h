@@ -15,8 +15,6 @@ void egads_lite_classify(Egads* eg, int nadj_faces, int const adj_face_ids[],
 void egads_lite_free(Egads* eg);
 void egads_lite_reclassify(Mesh* mesh, Egads* eg);
 Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose);
-void hackClassification(Omega_h::Mesh* mesh);
-void setCudaStackSz();
 
 }  // namespace Omega_h
 

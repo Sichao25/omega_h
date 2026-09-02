@@ -114,8 +114,6 @@ Egads* egads_lite_load(std::string const& filename) {
   int nbodies;
   ego* bodies;
 
-  for (int i = 0; i < 3; ++i)
-    printf("dims2oclass[%d] %d\n", i, dims2oclass[i]);
   const auto egModel = eg->model;
   Omega_h::LOs d2oc = {dims2oclass[0],
                        dims2oclass[1],
@@ -125,7 +123,6 @@ Egads* egads_lite_load(std::string const& filename) {
   auto egEnts_d = OhWriteEgo(3);
   auto egBody_d = OhWriteEgo(1);
   auto getTopo = OMEGA_H_LAMBDA(int) {
-    printf("cuda eg_getTopo\n");
     ego model_geom;
     int model_oclass;
     int model_mtype;
@@ -133,46 +130,33 @@ Egads* egads_lite_load(std::string const& filename) {
     //needed outputs
     int nbodies_local;
     ego* bodies_local;
-    printf("eg_getTopo 0.1\n");
     CALL(EG_getTopology(egModel, &model_geom, &model_oclass, &model_mtype,
         nullptr, &nbodies_local, &bodies_local, &body_senses));
-    printf("nbodies_local %d\n", nbodies_local);
     assert(nbodies_local == 1);
     egBody_d[0] = egoToGo(bodies_local[0]);
-    printf("device body %p\n", bodies_local[0]);
     for (int i = 0; i < 3; ++i) {
-      printf("d2oc[%d] %d\n", i, d2oc[i]);
       int counts;
       ego* ents;
       CALL(EG_getBodyTopos(bodies_local[0], nullptr, d2oc[i], &counts, &ents));
       egCounts_d[i] = counts;
       egEnts_d[i] = egoPtrToGo(ents);
-      printf("device %d count %d ents %p\n",
-          i, egCounts_d[i], egEnts_d[i]);
     }
-    printf("eg_getTopo 0.3\n");
   };
   parallel_for(1, getTopo, "getEgadsTopo");
   assert(cudaSuccess == cudaDeviceSynchronize());
   const auto egEnts = Omega_h::HostRead<Omega_h::GO>(egEnts_d);
   const auto egCounts = Omega_h::HostRead<int>(egCounts_d);
-  printf("created reads\n");
   for (int i = 0; i < 3; ++i) {
     eg->counts[i] = egCounts[i];
     eg->entities[i] = goToEgoPtr(egEnts[i]);
     //store the pointer to the array of egads faces
     eg->entities_d[i] = goToEgoPtr(egEnts[i]);
-    printf("host %d count %d ents %p\n", i, eg->counts[i], eg->entities[i]);
   }
-  printf("3.0\n");
   const auto egBody = Omega_h::HostRead<Omega_h::GO>(egBody_d);
-  printf("host body %p\n", egBody[0]);
   eg->body = goToEgo(egBody[0]);
-  printf("3.1\n");
 
   // preprocess edge and vertex adjacency to faces
   for (int i = 0; i < 2; ++i) {
-    printf("3.11\n");
     Omega_h::Write<int> setSizes_d(eg->counts[i]);
     auto egBody = eg->body;
     auto egCounts = eg->counts[2];
@@ -195,7 +179,6 @@ Egads* egads_lite_load(std::string const& filename) {
     };
     parallel_for(1, countIndexBody, "getIndexBody");
     assert(cudaSuccess == cudaDeviceSynchronize());
-    printf("3.12\n");
 
     const auto setSizes = Omega_h::HostRead<int>(setSizes_d);
     int totSize = 0;
@@ -203,10 +186,8 @@ Egads* egads_lite_load(std::string const& filename) {
       totSize += setSizes[j];
     }
     auto idxs2adj_faces_d = OhWriteEgo(totSize);
-    printf("3.13\n");
 
     Omega_h::Write<int> setCounts_d(eg->counts[i]);
-    printf("3.2\n");
     //fill the sets
     auto getIndexBody = OMEGA_H_LAMBDA(int) {
       for (int j = 0; j < egCounts; ++j) {
@@ -227,7 +208,6 @@ Egads* egads_lite_load(std::string const& filename) {
     parallel_for(1, getIndexBody, "getIndexBody");
     assert(cudaSuccess == cudaDeviceSynchronize());
 
-    printf("3.3\n");
     std::vector<std::set<ego>> idxs2adj_faces(eg->counts[i]);
     //copy array into vector of sets
     const auto idxs2adj_faces_h = Omega_h::HostRead<Omega_h::GO>(idxs2adj_faces_d);
@@ -239,7 +219,6 @@ Egads* egads_lite_load(std::string const& filename) {
       }
     }
 
-    printf("3.4\n");
     //copy each device entity pointer to the host
     auto entPtrs_d = OhWriteEgo(eg->counts[i]);
     auto copyDevPtrs = OMEGA_H_LAMBDA(int j) {
@@ -254,8 +233,7 @@ Egads* egads_lite_load(std::string const& filename) {
     for(int j=0; j < eg->counts[i]; j++) {
       eg->entities[i][j] = goToEgo(entPtrs_h[j]);
     }
-    
-    printf("3.5\n");
+
     for (int j = 0; j < eg->counts[i]; ++j) {
       auto adj_faces = idxs2adj_faces[j];
       // HACK!: we have a really insane CAD model with nonsensical topology.
@@ -266,7 +244,6 @@ Egads* egads_lite_load(std::string const& filename) {
       if (adj_faces.size() == 1) continue;
       eg->classifier[adj_faces] = eg->entities[i][j];
     }
-    printf("3.6\n");
   } //done loop over vertices and edges
 
   //copy each device face pointer to the host
@@ -284,7 +261,6 @@ Egads* egads_lite_load(std::string const& filename) {
   for(int j=0; j < eg->counts[fdim]; j++) {
     eg->entities[fdim][j] = goToEgo(entPtrs_h[j]);
   }
-  printf("3.7\n");
 
   //set struct device pointer for entity count
   eg->counts_d = LOs{eg->counts[0], eg->counts[1], eg->counts[2]};
@@ -403,8 +379,6 @@ OMEGA_H_INLINE Vector<3> get_closest_point(ego g, Vector<3> in) {
 }
 
 Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
-  fprintf(stderr, "numverts %d\n", mesh->nverts());
-  //Omega_h::vtk::write_parallel("preWarp", mesh, mesh->dim());
   OMEGA_H_CHECK(mesh->dim() == 3);
   if (verbose) std::cout << "Querying closest points for surface vertices...\n";
   auto t0 = now();
@@ -418,7 +392,6 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
                egoPtrToGo(eg->entities_d[2])};
   auto egCounts_d = eg->counts_d;
   auto egBody_d = eg->body;
-  printf("vtx,class_id,class_dim,isEdge,isFace,ptX,ptY,ptZ,clPtX,clPtY,clPtZ,warpX,warpY,warpZ\n");
   auto calc_warp = OMEGA_H_LAMBDA(LO i) {
     auto a = get_vector<3>(coords, i);
     Int class_dim = class_dims[i];
@@ -441,10 +414,6 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       {
       int isEdge = (g->oclass == EGADS_EDGE);
       int isFace = (g->oclass == EGADS_FACE);
-      printf("%d,%d,%d,%d,%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
-          i, index2, class_dim, isEdge, isFace, a[0], a[1], a[2],
-          clPt[0], clPt[1], clPt[2],
-          d[0],d[1],d[2]);
       }
     }
     set_vector(warp, i, d);
@@ -461,62 +430,6 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
               << (t1 - t0) << " seconds\n";
   }
   return warp;
-}
-
-void checkCudaError(int line) {
-#ifdef __NVCC__
-  cudaError_t code = cudaDeviceSynchronize();
-  const char * errorMessage = cudaGetErrorString(code);
-  if( code != cudaSuccess ) {
-    fprintf(stderr, "CUDA error on line %d Error code: %d (%s)\n", line, code, errorMessage);
-  }
-  assert(code == cudaSuccess);
-#endif
-}
-
-void hackClassification(Omega_h::Mesh* mesh) {
-  fprintf(stderr, "hacking classification\n");
-  OMEGA_H_CHECK(mesh->dim() == 3);
-  auto vtx_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::VERT, "class_dim");
-  auto vtx_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::VERT, "class_id");
-  auto vtx_class_ids_w = Omega_h::deep_copy(vtx_class_ids_r, "vtxClassIds_w");
-  auto setVtxClass = OMEGA_H_LAMBDA(int i) {
-    if(vtx_class_dims[i] == 1 && vtx_class_ids_w[i] == 1) {
-      printf("vtx %i reclassified\n",i);
-      vtx_class_ids_w[i] = 7;
-    }
-  };
-  Omega_h::parallel_for(mesh->nents(0), setVtxClass, "setVtxClass");
-  fprintf(stderr, "done hacking vtx classification\n");
-  mesh->set_tag(0, "class_id", Omega_h::read(vtx_class_ids_w));
-
-  auto edge_class_dims = mesh->get_array<Omega_h::I8>(Omega_h::EDGE, "class_dim");
-  auto edge_class_ids_r = mesh->get_array<Omega_h::ClassId>(Omega_h::EDGE, "class_id");
-  auto edge_class_ids_w = Omega_h::deep_copy(edge_class_ids_r, "edgeClassIds_w");
-  auto setEdgeClass = OMEGA_H_LAMBDA(int i) {
-    if(edge_class_dims[i] == 1 && edge_class_ids_w[i] == 1) {
-      printf("edge %i reclassified\n",i);
-      edge_class_ids_w[i] = 7;
-    }
-  };
-  Omega_h::parallel_for(mesh->nents(1), setEdgeClass, "setEdgeClass");
-  fprintf(stderr, "done hacking edge classification\n");
-  mesh->set_tag(1, "class_id", Omega_h::read(edge_class_ids_w));
-
-}
-
-void setCudaStackSz() {
-  size_t stackLimit;
-  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
-  checkCudaError(__LINE__);
-  printf("original stack limit %d\n", stackLimit);
-  stackLimit=8*1024;
-  cuCtxSetLimit(CU_LIMIT_STACK_SIZE,stackLimit);
-  checkCudaError(__LINE__);
-  cuCtxGetLimit(&stackLimit, CU_LIMIT_STACK_SIZE);
-  checkCudaError(__LINE__);
-  printf("new stack limit %d\n", stackLimit);
-  printf("stack limit %d\n", stackLimit);
 }
 
 }  // namespace Omega_h
