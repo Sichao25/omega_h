@@ -111,8 +111,6 @@ Egads* egads_lite_load(std::string const& filename) {
   auto eg = new Egads;
   CALL(EG_open(&eg->context));
   CALL(EG_loadModel(eg->context, 0, filename.c_str(), &eg->model));
-  int nbodies;
-  ego* bodies;
 
   const auto egModel = eg->model;
   Omega_h::LOs d2oc = {dims2oclass[0],
@@ -411,10 +409,6 @@ Reals egads_lite_get_snap_warp(Mesh* mesh, Egads* eg, bool verbose) {
       auto b = get_closest_point(g, a);
       clPt = b;
       d = b - a;
-      {
-      int isEdge = (g->oclass == EGADS_EDGE);
-      int isFace = (g->oclass == EGADS_FACE);
-      }
     }
     set_vector(warp, i, d);
     set_vector(closePts, i, clPt);
