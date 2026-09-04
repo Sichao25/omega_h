@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.0...${CMAKE_VERSION})
 
-project(Omega_h VERSION 11.1.0 LANGUAGES CXX)
+project(Omega_h VERSION 11.4.0 LANGUAGES CXX)
 set(Omega_h_USE_STK_DEFAULT OFF)
 option(Omega_h_USE_STK "Whether to build the STK interface" ${Omega_h_USE_STK_DEFAULT})
 
@@ -20,6 +20,7 @@ bob_option(Omega_h_CHECK_BOUNDS "Check array bounds when running on host (makes 
 bob_option(Omega_h_THROW "Errors throw exceptions instead of abort" ${USE_XSDK_DEFAULTS})
 bob_input(Omega_h_DATA "" PATH "Path to omega_h-data test files")
 bob_option(Omega_h_USE_EGADS "Use EGADS from ESP for geometry" OFF)
+bob_option(Omega_h_USE_egadslite "Use EGADSlite from ESP for geometry" OFF)
 bob_input(EGADS_PREFIX "" PATH "EGADS (or ESP) installation directory")
 bob_option(Omega_h_USE_Kokkos "Use Kokkos as a backend" OFF)
 bob_input(Kokkos_PREFIX "" PATH "Path to Kokkos install")
@@ -67,6 +68,20 @@ if (Omega_h_USE_Kokkos)
   set_target_properties(Kokkos::kokkos PROPERTIES INTERFACE_COMPILE_OPTIONS "")
 endif()
 
+set(Omega_h_USE_egadslite_DEFAULT OFF)
+bob_add_dependency(PUBLIC NAME egadslite TARGETS egadslite::egadslite)
+if(Omega_h_USE_egadslite)
+  if(NOT Kokkos_ENABLE_CUDA)
+    message(FATAL_ERROR "egadslite only works with CUDA, please enable the Kokkos_ENABLE_CUDA flag")
+  endif()
+  if(Omega_h_USE_EGADS)
+    message(FATAL_ERROR "EGADS and egadslite not compatible, please disable one")
+  endif()
+  if(SCOREC_EGADSLITE_VERSION VERSION_LESS 2.0.0)
+    message(FATAL_ERROR "SCOREC_EGADS_VERSION minimum is 2.0.0 but found version ${SCOREC_EGADSLITE_VERSION}")
+  endif()
+endif()
+
 set(libMeshb_REQUIRED_VERSION 7.24)
 set(Omega_h_USE_libMeshb_DEFAULT OFF)
 bob_add_dependency(PUBLIC NAME libMeshb TARGETS libMeshb::Meshb.7)
@@ -90,7 +105,7 @@ set(SEACASExodus_PREFIX_DEFAULT ${Trilinos_PREFIX})
 bob_add_dependency(PUBLIC NAME SEACASExodus TARGETS SEACASExodus::all_libs)
 
 set(Omega_h_USE_pybind11_DEFAULT OFF)
-bob_public_dep(pybind11)
+bob_private_dep(pybind11)
 
 set(Omega_h_USE_ADIOS2_DEFAULT OFF)
 set(ADIOS2_PREFIX_DEFAULT ${ADIOS2_DIR})
@@ -160,12 +175,14 @@ set(Omega_h_KEY_BOOLS
     Omega_h_USE_ZLIB
     Omega_h_USE_libMeshb
     Omega_h_USE_EGADS
+    Omega_h_USE_egadslite
     Omega_h_USE_SEACASExodus
     Omega_h_USE_SimModSuite
     Omega_h_USE_SimDiscrete
     Omega_h_USE_ADIOS2
     Omega_h_USE_DOLFIN
     Omega_h_USE_dwarf
+    Omega_h_USE_pybind11
     Omega_h_CHECK_BOUNDS
     Omega_h_THROW
     OMEGA_H_USE_GPU_AWARE_MPI

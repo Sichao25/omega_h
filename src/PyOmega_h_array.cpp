@@ -1,5 +1,6 @@
 #include <Omega_h_array.hpp>
 #include <PyOmega_h.hpp>
+#include <PyOmega_h_numpy_transform.hpp>
 
 namespace Omega_h {
 
@@ -48,6 +49,17 @@ static void pybind11_array_type(py::module& m,
       &deep_copy;
   m.def(deepcopy_name.c_str(), deep_copy_type, py::arg("a"),
       py::arg("name") = "");
+  // Expose numpy transform functions for direct testing
+  m.def(("numpy_to_read_" + py_scalar).c_str(),
+      [](py::array_t<Scalar> arr) { return numpy_to_omega_h_read<Scalar>(arr); },
+      py::arg("arr"),
+      "Convert 1D numpy array to Read array (copies through host)");
+  m.def(("write_to_numpy_" + py_scalar).c_str(),
+      [](Write<Scalar> w) {
+        return omega_h_write_to_numpy<Scalar>(w);
+      },
+      py::arg("write_view"),
+      "Convert Write array to numpy array (copies through host)");
 }
 
 void pybind11_array(py::module& m) {

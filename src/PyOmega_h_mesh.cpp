@@ -22,11 +22,18 @@ void pybind11_mesh(py::module& m) {
   void (Mesh::*balance)(bool) = &Mesh::balance;
   py::class_<Omega_h::Mesh, std::shared_ptr<Omega_h::Mesh>>(m, "OmegaHMesh")
     .def(py::init<>(), "Default constructor")
-    .def(py::init<Omega_h::Library*>(), py::arg("library"),
-         "Constructor with library")
+    .def(py::init([](std::shared_ptr<Omega_h::Library> lib) {
+           return std::make_shared<Omega_h::Mesh>(lib.get());
+         }),
+         py::arg("library"), py::keep_alive<1, 0>(),
+         "Constructor with library (keeps library alive)")
 
-    .def("set_library", &Omega_h::Mesh::set_library, py::arg("library"),
-         "Set the library")
+    .def("set_library",
+         [](Omega_h::Mesh& mesh, std::shared_ptr<Omega_h::Library> lib) {
+           mesh.set_library(lib.get());
+         },
+         py::arg("library"), py::keep_alive<1, 2>(),
+         "Set the library (keeps library alive)")
 
     .def("library", &Omega_h::Mesh::library, py::return_value_policy::reference,
          "Get the library")
@@ -34,7 +41,8 @@ void pybind11_mesh(py::module& m) {
     .def("set_comm", &Omega_h::Mesh::set_comm, py::arg("comm"),
          "Set the communicator")
 
-    .def("comm", &Omega_h::Mesh::comm, "Get the communicator")
+    .def("comm", &Omega_h::Mesh::comm, py::keep_alive<0, 1>(),
+         "Get the communicator (keeps mesh alive)")
 
     .def("set_dim", &Omega_h::Mesh::set_dim, py::arg("dim"),
          "Set mesh dimension")
@@ -458,8 +466,12 @@ void pybind11_mesh(py::module& m) {
         return omega_h_read_to_numpy(sizes);
       },
       "Get element sizes");
-  m.def(
-      "new_empty_mesh", []() { return Mesh(pybind11_global_library); });
+  m.def("new_empty_mesh",
+    [](std::shared_ptr<Omega_h::Library> lib) {
+      return std::make_shared<Omega_h::Mesh>(lib.get());
+    },
+    py::arg("library"), py::keep_alive<1, 0>(),
+    "Create an empty mesh associated with the given library");
   // Mesh utility functions
   m.def(
     "average_field",

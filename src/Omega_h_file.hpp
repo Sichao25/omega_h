@@ -257,6 +257,11 @@ void write_parallel(filesystem::path const& filename, Mesh& mesh);
 
 }  // namespace gmsh
 
+namespace xgc {
+Mesh read(filesystem::path const& basename, CommPtr comm);
+void write(filesystem::path const& basename, Mesh* mesh);
+}  // namespace xgc
+
 namespace vtk {
 static constexpr bool do_compress = true;
 static constexpr bool dont_compress = false;

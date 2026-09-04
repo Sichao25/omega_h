@@ -4,6 +4,10 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+env:
+  # Pin the gmsh version; keep GMSH_VERSION in sync with .github/workflows/dependency-check.yml
+  GMSH_VERSION: "4.15.2"
+  GMSH_TAG: "gmsh_4_15_2"
 jobs:
   build:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -76,10 +80,18 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install numpy pytest pybind11==2.13.5
     
+    - name: Cache gmsh
+      id: cache-gmsh
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/gmsh
+        key: gmsh-${{ runner.os }}-${{ runner.arch }}-${{ env.GMSH_VERSION }}
+
     - name: install gmsh
+      if: steps.cache-gmsh.outputs.cache-hit != 'true'
       working-directory: ${{runner.temp }}
       run: |
-           git clone --branch gmsh_4_14_1 https://gitlab.onelab.info/gmsh/gmsh.git
+           git clone --branch ${{ env.GMSH_TAG }} https://gitlab.onelab.info/gmsh/gmsh.git
            cd gmsh
            mkdir build
            cmake . \
@@ -282,7 +294,7 @@ jobs:
             -DKokkos_PREFIX=$GITHUB_WORKSPACE/kokkos/build/install \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
-            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
+            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.${{ env.GMSH_VERSION }} \
             -DOmega_h_USE_ADIOS2=ON \
             -DOmega_h_USE_libMeshb=ON \
             -DlibMeshb_PREFIX=${{runner.temp}}/libmeshb/build/install \
@@ -301,7 +313,7 @@ jobs:
             -DOmega_h_USE_pybind11=${{ matrix.python }} \
             -DOmega_h_USE_Gmsh=ON \
             -DGmsh_INCLUDE_DIRS=${{runner.temp }}/gmsh/install/include \
-            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.4.14.1 \
+            -DGmsh_LIBRARIES=${{runner.temp }}/gmsh/install/lib/libgmsh.so.${{ env.GMSH_VERSION }} \
             -DOmega_h_USE_ADIOS2=${{ matrix.mpi }} \
             -DBUILD_TESTING=ON \
             -DBUILD_SHARED_LIBS=${{ matrix.python }} \

@@ -109,6 +109,7 @@ set(Omega_h_SOURCES
   Omega_h_xml_lite.cpp
   Omega_h_yaml.cpp
   Omega_h_mesh2d.cpp
+  Omega_h_xgc.cpp
   )
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -171,6 +172,10 @@ if(Omega_h_USE_ADIOS2)
   list(APPEND Omega_h_SOURCES Omega_h_adios2.cpp)
 endif()
 
+if(Omega_h_USE_egadslite)
+  list(APPEND Omega_h_SOURCES Omega_h_egads_lite.cpp)
+endif()
+
 if(Omega_h_USE_SEACASExodus)
   list(APPEND Omega_h_SOURCES Omega_h_exodus.cpp)
 endif()
@@ -212,6 +217,8 @@ bob_link_dependency(omega_h PUBLIC libMeshb)
 
 bob_link_dependency(omega_h PUBLIC Gmsh)
 
+bob_link_dependency(omega_h PUBLIC egadslite)
+
 if(Omega_h_USE_EGADS)
   target_include_directories(omega_h PUBLIC "${EGADS_INCLUDE_DIR}")
   target_link_libraries(omega_h PUBLIC "${EGADS_LIBRARY}")
@@ -252,7 +259,7 @@ if(Omega_h_USE_DOLFIN)
 endif()
 
 if(Kokkos_ENABLE_CUDA)
-  target_compile_options(omega_h PUBLIC "--expt-extended-lambda")
+  target_compile_options(omega_h PUBLIC "$<$<COMPILE_LANGUAGE:CXX>:--expt-extended-lambda>")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -293,6 +300,7 @@ osh_add_util(describe)
 osh_add_util(msh2osh)
 osh_add_util(osh2vtk)
 osh_add_util(osh2xgc)
+osh_add_util(xgc2osh)
 osh_add_util(osh2msh)
 osh_add_util(scale)
 osh_add_util(oshdiff)
@@ -406,15 +414,17 @@ if(BUILD_TESTING)
   osh_add_exe(arrayops_test)
   osh_add_exe(sort_test)
   osh_add_exe(unit_math)
+
+  osh_add_exe(test_patches)
+  if(Omega_h_USE_MPI)
+    test_func(run_test_patches_par 4 ./test_patches)
+  else()
+    test_func(run_test_patches 1 ./test_patches)
+  endif()
+
   if (Omega_h_USE_Kokkos)
     osh_add_exe(bbox_reduce_test)
     osh_add_exe(initKokkosAndLib)
-    osh_add_exe(test_patches)
-    if(Omega_h_USE_MPI)
-      test_func(run_test_patches_par 4 ./test_patches)
-    else()
-      test_func(run_test_patches 1 ./test_patches)
-    endif()
   endif()
   list(APPEND TEST_EXES unit_math)
   test_basefunc(run_unit_math 1 ./unit_math)
@@ -641,6 +651,9 @@ if(BUILD_TESTING)
   if(Omega_h_USE_EGADS)
     osh_add_exe(egads_test)
   endif()
+  if(Omega_h_USE_egadslite)
+    osh_add_exe(egads_lite_adapt_test)
+  endif()
   osh_add_exe(advect2d_test)
   if(Omega_h_DATA)
     list(APPEND TEST_EXES advect2d_test)
@@ -766,6 +779,8 @@ set(Omega_h_HEADERS
   Omega_h_defines.hpp
   Omega_h_dist.hpp
   Omega_h_eigen.hpp
+  Omega_h_egads.hpp
+  Omega_h_egads_lite.hpp
   Omega_h_element.hpp
   Omega_h_expr.hpp
   Omega_h_fail.hpp
@@ -848,7 +863,7 @@ if(Omega_h_USE_STK)
 endif()
 
 if(Omega_h_USE_Kokkos)
-  list(APPEND Omega_h_HEADERS Omega_h_memory.hpp)  
+  list(APPEND Omega_h_HEADERS Omega_h_memory.hpp)
   list(APPEND Omega_h_HEADERS Omega_h_pool_kokkos.hpp)
   list(APPEND Omega_h_HEADERS Omega_h_array_kokkos.hpp)
 else()
@@ -864,6 +879,7 @@ install(FILES ${Omega_h_HEADERS} DESTINATION include)
 if (Omega_h_USE_pybind11)
   set(PYBIND11_SOURCES
       PyOmega_h.cpp
+      PyOmega_h_runtime.cpp
       PyOmega_h_defines.cpp
       PyOmega_h_array.cpp
       PyOmega_h_comm.cpp
@@ -879,14 +895,24 @@ if (Omega_h_USE_pybind11)
   if (Omega_h_USE_DOLFIN)
     list(APPEND PYBIND11_SOURCES PyOmega_h_dolfin.cpp)
   endif()
+  set(PYBIND11_MODULE_OPTIONS)
+  if (Kokkos_ENABLE_CUDA)
+    # GNU LTO merges CUDA fatbinary objects and emits duplicate fatbinData
+    # symbols while linking the Python module. NO_EXTRAS disables pybind11's
+    # automatic LTO for this target.
+    set(PYBIND11_MODULE_OPTIONS NO_EXTRAS)
+  endif()
   pybind11_add_module(PyOmega_h
+      ${PYBIND11_MODULE_OPTIONS}
       ${PYBIND11_SOURCES})
   target_link_libraries(PyOmega_h PUBLIC omega_h)
-  if (PYTHON_VERSION_MAJOR EQUAL 3)
-    set(PyOmega_h_DEST "lib/python3/dist-packages")
-  else()
-    set(PyOmega_h_DEST "lib/python/dist-packages")
-  endif()
+  # this is useful for direct CMake installation into python.
+  # This enables spack environment installation to directly load the PyOmega_h module
+  set(PyOmega_h_DEST "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
+  # Ensure the extension can resolve Omega_h shared libraries from a standard
+  # prefix install layout (e.g. Spack), where the module lives under
+  # <prefix>/<libdir>/pythonX.Y/site-packages and core libs live in <libdir>.
+  set_target_properties(PyOmega_h PROPERTIES INSTALL_RPATH "\$ORIGIN;\$ORIGIN/../../../")
   install(TARGETS PyOmega_h
       ARCHIVE DESTINATION "${PyOmega_h_DEST}"
       LIBRARY DESTINATION "${PyOmega_h_DEST}")

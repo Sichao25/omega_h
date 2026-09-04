@@ -1,3 +1,4 @@
+#include <fstream>
 #include <Omega_h_file.hpp>
 #include <Omega_h_filesystem.hpp>
 #include <PyOmega_h.hpp>
@@ -17,18 +18,19 @@ void pybind11_file(py::module& m) {
       return Omega_h::read_mesh_file(filepath, comm);
     },
     py::arg("filepath"), py::arg("comm"),
-    "Read mesh from file (auto-detects format)", py::return_value_policy::move);
+    "Read mesh from file (auto-detects format)",
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
   // Binary format I/O
   m.def(
     "read_mesh_binary",
-    [](const std::string& filepath, Omega_h::Library* lib) {
-      Omega_h::Mesh mesh(lib);
+    [](const std::string& filepath, std::shared_ptr<Omega_h::Library> lib) {
+      Omega_h::Mesh mesh(lib.get());
       Omega_h::binary::read(filepath, lib->world(), &mesh);
       return mesh;
     },
     py::arg("filepath"), py::arg("library"), "Read mesh from binary file",
-    py::return_value_policy::move);
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
   m.def(
     "read_mesh_binary",
@@ -36,7 +38,7 @@ void pybind11_file(py::module& m) {
       return Omega_h::binary::read(filepath, comm);
     },
     py::arg("filepath"), py::arg("comm"), "Read mesh from binary file",
-    py::return_value_policy::move);
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
   m.def(
     "write_mesh_binary",
@@ -52,7 +54,7 @@ void pybind11_file(py::module& m) {
       return Omega_h::gmsh::read(filepath, comm);
     },
     py::arg("filepath"), py::arg("comm"), "Read mesh from Gmsh file",
-    py::return_value_policy::move);
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
   m.def(
     "write_mesh_gmsh",
@@ -68,7 +70,7 @@ void pybind11_file(py::module& m) {
       return Omega_h::gmsh::read_parallel(filepath, comm);
     },
     py::arg("filepath"), py::arg("comm"), "Read parallel Gmsh mesh (MSH 4.1+)",
-    py::return_value_policy::move);
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
   m.def("write_mesh_gmsh_parallel", &Omega_h::gmsh::write_parallel,
     py::arg("filepath"), py::arg("mesh"), "Write parallel Gmsh mesh (MSH 4.1)");
@@ -103,14 +105,28 @@ void pybind11_file(py::module& m) {
     "Write mesh to parallel VTK files");
 
   m.def(
+    "read_mesh_vtu",
+    [](const std::string& filepath, std::shared_ptr<Omega_h::Comm> comm) {
+      std::ifstream file(filepath, std::ios::binary);
+      if (!file.is_open()) {
+        throw std::runtime_error("Cannot open VTU file: " + filepath);
+      }
+      Omega_h::Mesh mesh(comm->library());
+      Omega_h::vtk::read_vtu(file, comm, &mesh);
+      return mesh;
+    },
+    py::arg("filepath"), py::arg("comm"), "Read mesh from VTU file",
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
+
+  m.def(
     "read_mesh_parallel_vtk",
     [](const std::string& pvtupath, std::shared_ptr<Omega_h::Comm> comm) {
-      Omega_h::Mesh mesh;
+      Omega_h::Mesh mesh(comm->library());
       Omega_h::vtk::read_parallel(pvtupath, comm, &mesh);
       return mesh;
     },
     py::arg("pvtupath"), py::arg("comm"), "Read parallel VTK mesh",
-    py::return_value_policy::move);
+    py::keep_alive<0, 2>(), py::return_value_policy::move);
 
 #ifdef OMEGA_H_USE_SEACASEXODUS
   // Exodus ClassifyWith enum
@@ -238,12 +254,13 @@ void pybind11_file(py::module& m) {
   // ADIOS2 format I/O
   m.def(
     "read_mesh_adios2",
-    [](const std::string& filepath, Omega_h::Library* lib,
+    [](const std::string& filepath, std::shared_ptr<Omega_h::Library> lib,
        const std::string& prefix) {
-      return Omega_h::adios::read(filepath, lib, prefix);
+      return Omega_h::adios::read(filepath, lib.get(), prefix);
     },
     py::arg("filepath"), py::arg("library"), py::arg("prefix") = "",
-    "Read mesh from ADIOS2 file", py::return_value_policy::move);
+    "Read mesh from ADIOS2 file", py::keep_alive<0, 2>(),
+    py::return_value_policy::move);
 
   m.def(
     "write_mesh_adios2",
