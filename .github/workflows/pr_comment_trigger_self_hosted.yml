@@ -89,6 +89,25 @@ jobs:
           cmake --build $gmsbdir --target install -j 4
           echo "GMSH_BUILD=$gmsbdir" >> $GITHUB_ENV
 
+          # egadsliteCuda
+          git clone git@github.com:SCOREC/egadsliteCuda.git ${workDir}/egadsliteCuda
+          egadslitebdir=${workDir}/build-egadsliteCuda
+          cmake -S ${workDir}/egadsliteCuda -B $egadslitebdir \
+            -DCMAKE_INSTALL_PREFIX=$egadslitebdir/install \
+            -DCMAKE_CUDA_ARCHITECTURES=86
+          cmake --build $egadslitebdir --target install -j 4
+          echo "EGADSLITE_BUILD=$egadslitebdir" >> $GITHUB_ENV
+
+          #libMeshb
+          git clone -b v7.80 git@github.com:LoicMarechal/libMeshb.git ${workDir}/libMeshb
+          libMeshbdir=${workDir}/build-libMeshb
+          cmake -S ${workDir}/libMeshb -B $libMeshbdir \
+            -DCMAKE_INSTALL_PREFIX=$libMeshbdir/install \
+            -DCMAKE_Fortran_COMPILER=gfortran \
+            -DCMAKE_C_COMPILER=gcc
+          cmake --build $libMeshbdir --target install -j 4
+          echo "LIBMESHB_BUILD=$libMeshbdir" >> $GITHUB_ENV
+
           # kokkos - multiple configs
           git clone https://github.com/kokkos/kokkos.git ${workDir}/kokkos
 
@@ -105,6 +124,20 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$kkbdir/install
           cmake --build $kkbdir --target install -j 4
           echo "KOKKOS_CUDA_BUILD=$kkbdir" >> $GITHUB_ENV
+
+          kkbdir_rdc=${workDir}/build-kokkos-cuda-rdc
+          cmake -S ${workDir}/kokkos -B $kkbdir_rdc \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON \
+            -DCMAKE_CXX_COMPILER=${workDir}/kokkos/bin/nvcc_wrapper \
+            -DKokkos_ARCH_AMPERE80=ON \
+            -DKokkos_ENABLE_SERIAL=ON \
+            -DKokkos_ENABLE_OPENMP=off \
+            -DKokkos_ENABLE_CUDA=on \
+            -DKokkos_ENABLE_DEBUG=off \
+            -DCMAKE_INSTALL_PREFIX=$kkbdir_rdc/install
+          cmake --build $kkbdir_rdc --target install -j 4
+          echo "KOKKOS_CUDA_RDC_BUILD=$kkbdir_rdc" >> $GITHUB_ENV
 
           kkbdir_serial=${workDir}/build-kokkos-serial
           cmake -S ${workDir}/kokkos -B $kkbdir_serial \
@@ -163,6 +196,30 @@ jobs:
             -DGmsh_INCLUDE_DIRS=$gmsbdir/install/include \
             -DGmsh_LIBRARIES=$gmsbdir/install/lib64/libgmsh.so.4.14.1 \
             -DBUILD_SHARED_LIBS=on
+          cmake --build $bdir -j 4
+          ctest --test-dir $bdir --output-on-failure
+
+      - name: build with Kokkos CUDA RDC backend
+        id: build_kokkos_cuda_rdc
+        shell: bash
+        run: |
+          source $OMEGAH_WORK_DIR/envGcc13.sh
+
+          workDir=$OMEGAH_WORK_DIR
+          export CMAKE_PREFIX_PATH="$libMeshbdir/install:$egadslitebdir/install:$kkbdir_rdc/install:$CMAKE_PREFIX_PATH"
+
+          # omegah
+          bdir=${workDir}/build-omegah
+          cmake -S omegah_${{ github.event.issue.number }} -B $bdir \
+            -DCMAKE_INSTALL_PREFIX=$bdir/install \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=on  \
+            -DOmega_h_USE_MPI=on  \
+            -DOmega_h_USE_Kokkos=on \
+            -DOmega_h_CUDA_ARCH="80" \
+            -DCMAKE_CUDA_ARCHITECTURES="80" \
+            -DOmega_h_USE_libMeshb=ON \
+            -DOmega_h_USE_egadslite=ON
           cmake --build $bdir -j 4
           ctest --test-dir $bdir --output-on-failure
 
@@ -334,6 +391,7 @@ jobs:
           echo "${{ github.event.issue.number }}"  > ./pr/issueNumber
           echo "Test Results:" > ./pr/message
           echo "- Kokkos CUDA: ${{ steps.build_kokkos_cuda.outcome }}" >> ./pr/message
+          echo "- Kokkos CUDA rdc: ${{ steps.build_kokkos_cuda_rdc.outcome }}" >> ./pr/message
           echo "- No Kokkos: ${{ steps.build_no_kokkos.outcome }}" >> ./pr/message
           echo "- Kokkos Serial: ${{ steps.build_kokkos_serial.outcome }}" >> ./pr/message
           echo "- Kokkos OpenMP: ${{ steps.build_kokkos_openmp.outcome }}" >> ./pr/message

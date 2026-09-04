@@ -18,6 +18,9 @@
 #ifdef OMEGA_H_USE_EGADS
 #include "Omega_h_egads.hpp"
 #endif
+#ifdef OMEGA_H_USE_EGADSLITE
+#include "Omega_h_egads_lite.hpp"
+#endif
 
 namespace Omega_h {
 
@@ -73,11 +76,11 @@ AdaptOpts::AdaptOpts(Int dim) {
   length_histogram_max = 3.0;
   nlength_histogram_bins = 10;
   nquality_histogram_bins = 10;
-#ifdef OMEGA_H_USE_EGADS
-  egads_model = nullptr;
   should_smooth_snap = true;
   snap_smooth_tolerance = 1e-2;
   allow_snap_failure = false;
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
+  egads_model = nullptr;
 #endif
   should_refine = true;
   should_coarsen = true;
@@ -212,7 +215,7 @@ static bool satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
 }
 
 static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
-#ifdef OMEGA_H_USE_EGADS
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
   if (opts.egads_model) {
     ScopedTimer snap_timer("snap");
 
@@ -222,8 +225,14 @@ static void snap_and_satisfy_quality(Mesh* mesh, AdaptOpts const& opts) {
 
     //mesh->change_all_rcFieldsToMesh();
 
+    #ifdef OMEGA_H_USE_EGADSLITE
+    auto warp = egads_lite_get_snap_warp(
+      mesh, opts.egads_model, opts.verbosity >= EACH_REBUILD);
+    #else
     auto warp = egads_get_snap_warp(
         mesh, opts.egads_model, opts.verbosity >= EACH_REBUILD);
+    #endif
+
     if (opts.should_smooth_snap) {
       if (opts.verbosity >= EACH_REBUILD) {
         std::cout << "Solving Laplacian of warp field...\n";
@@ -260,7 +269,7 @@ static void post_adapt(
     std::cout << "addressing edge lengths took " << (t2 - t1) << " seconds\n";
   }
   if (opts.verbosity > SILENT && !mesh->comm()->rank()) {
-#ifdef OMEGA_H_USE_EGADS
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
     if (opts.egads_model) std::cout << "snapping while ";
 #endif
     std::cout << "addressing element qualities took " << (t3 - t2);

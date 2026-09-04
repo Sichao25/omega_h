@@ -173,6 +173,10 @@ if(Omega_h_USE_ADIOS2)
   find_package(ADIOS2 REQUIRED)
 endif()
 
+if(Omega_h_USE_egadslite)
+  list(APPEND Omega_h_SOURCES Omega_h_egads_lite.cpp)
+endif()
+
 if(Omega_h_USE_SEACASExodus)
   list(APPEND Omega_h_SOURCES Omega_h_exodus.cpp)
 endif()
@@ -213,6 +217,8 @@ bob_link_dependency(omega_h PUBLIC Kokkos)
 bob_link_dependency(omega_h PUBLIC libMeshb)
 
 bob_link_dependency(omega_h PUBLIC Gmsh)
+
+bob_link_dependency(omega_h PUBLIC egadslite)
 
 if(Omega_h_USE_EGADS)
   target_include_directories(omega_h PUBLIC "${EGADS_INCLUDE_DIR}")
@@ -646,6 +652,9 @@ if(BUILD_TESTING)
   if(Omega_h_USE_EGADS)
     osh_add_exe(egads_test)
   endif()
+  if(Omega_h_USE_egadslite)
+    osh_add_exe(egads_lite_adapt_test)
+  endif()
   osh_add_exe(advect2d_test)
   if(Omega_h_DATA)
     list(APPEND TEST_EXES advect2d_test)
@@ -772,6 +781,7 @@ set(Omega_h_HEADERS
   Omega_h_dist.hpp
   Omega_h_eigen.hpp
   Omega_h_egads.hpp
+  Omega_h_egads_lite.hpp
   Omega_h_element.hpp
   Omega_h_expr.hpp
   Omega_h_fail.hpp

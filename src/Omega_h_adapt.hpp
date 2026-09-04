@@ -149,7 +149,7 @@ struct TransferOpts {
 
 enum Verbosity { SILENT, EACH_ADAPT, EACH_REBUILD, EXTRA_STATS };
 
-#ifdef OMEGA_H_USE_EGADS
+#if defined (OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
 struct Egads;
 #endif
 
@@ -168,11 +168,11 @@ struct AdaptOpts {
   Real length_histogram_max;
   Int nlength_histogram_bins;
   Int nquality_histogram_bins;
-#ifdef OMEGA_H_USE_EGADS
-  Egads* egads_model;
   bool should_smooth_snap;
   Real snap_smooth_tolerance;
   bool allow_snap_failure;
+#if defined(OMEGA_H_USE_EGADS) || defined(OMEGA_H_USE_EGADSLITE)
+  Egads* egads_model;
 #endif
   bool should_refine;
   bool should_coarsen;
