@@ -200,7 +200,7 @@ jobs:
           ctest --test-dir $bdir --output-on-failure
 
       - name: build with Kokkos CUDA RDC backend
-        id: build_kokkos_cuda
+        id: build_kokkos_cuda_rdc
         shell: bash
         run: |
           source $OMEGAH_WORK_DIR/envGcc13.sh
@@ -391,6 +391,7 @@ jobs:
           echo "${{ github.event.issue.number }}"  > ./pr/issueNumber
           echo "Test Results:" > ./pr/message
           echo "- Kokkos CUDA: ${{ steps.build_kokkos_cuda.outcome }}" >> ./pr/message
+          echo "- Kokkos CUDA rdc: ${{ steps.build_kokkos_cuda_rdc.outcome }}" >> ./pr/message
           echo "- No Kokkos: ${{ steps.build_no_kokkos.outcome }}" >> ./pr/message
           echo "- Kokkos Serial: ${{ steps.build_kokkos_serial.outcome }}" >> ./pr/message
           echo "- Kokkos OpenMP: ${{ steps.build_kokkos_openmp.outcome }}" >> ./pr/message
